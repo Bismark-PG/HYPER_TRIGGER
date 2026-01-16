@@ -53,18 +53,29 @@ void Bullet_Manager::Draw()
     }
 }
 
-void Bullet_Manager::Fire(BulletType type, const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& dir, BulletOwner owner)
+void Bullet_Manager::Reset()
+{
+    for (Bullet* b : m_BulletList)
+    {
+        delete b;
+    }
+
+    m_BulletList.clear();
+}
+
+void Bullet_Manager::Fire(BulletType type, const DirectX::XMFLOAT3& visualPos, const DirectX::XMFLOAT3& logicalPos,
+    const DirectX::XMFLOAT3& dir, BulletOwner owner)
 {
     Bullet* N_Bullet = nullptr;
 
     switch (type)
     {
     case BulletType::RAY:
-        N_Bullet = new Bullet_Ray(pos, dir, owner);
+        N_Bullet = new Bullet_Ray(visualPos, logicalPos, dir, owner);
         break;
 
     case BulletType::GRENADE:
-        N_Bullet = new Bullet_Grenade(pos, dir, owner);
+        N_Bullet = new Bullet_Grenade(visualPos, dir, owner);
         break;
     }
 

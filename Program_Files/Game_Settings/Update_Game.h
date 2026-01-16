@@ -13,5 +13,4 @@ void Main_Game_Screen_Update();
 void Sub_Game_Screen_Update();
 void Game_Select_Screen_Update();
 
-void Game_Screen_Draw();
 #endif // GAME_MANAGER_H

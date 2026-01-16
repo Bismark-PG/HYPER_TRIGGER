@@ -9,7 +9,6 @@
 	Version : 1.0.0
 
 ==============================================================================*/
-#include <Windows.h>
 #define WIN32_LEAN_AND_MEAN
 #include "System_Logic_Manager.h"
 #include "Game_Header_Manager.h"
@@ -61,21 +60,22 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	System_Manager::GetInstance().Initialize(hWnd, Device, Context);
 
 	// Create Debug Text
-	//std::unique_ptr<Text::DebugText> Debug;
-	//auto Create_DebugText = [&]()
-	//	{
-	//		Debug = std::make_unique<Text::DebugText>(
-	//			Device, Context,
-	//			Texture_M->GetID("Debug_Text"),
-	//			Direct3D_GetBackBufferWidth(), Direct3D_GetBackBufferHeight());
-	//		Debug->SetScale(0.75f);
-	//		Debug->SetOffset(10.0f, 10.0f);
-	//	};
-	//Create_DebugText();
+	std::unique_ptr<Text::DebugText> Debug;
+	auto Create_DebugText = [&]()
+		{
+			Debug = std::make_unique<Text::DebugText>(
+				Device, Context,
+				Texture_Manager::GetInstance()->GetID("Debug_Text"),
+				Direct3D_GetBackBufferWidth(), Direct3D_GetBackBufferHeight());
+			Debug->SetScale(0.75f);
+			Debug->SetOffset(10.0f, 10.0f);
+		};
+	Create_DebugText();
 
 	// Show Mouse (True = Show // False = Don`t Show)
 	// Mouse_SetVisible(false);
-	Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
+	// Mouse Postion Mode
+	// Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 
 	// Show Window
 	ShowWindow(hWnd, nCmdShow);
@@ -149,7 +149,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 				Sprite_Begin();
 
 				// Real Draw Start
-				Game_Screen_Draw();
+				Main_Game_Screen_Update();
 
 				// Controller Input Alert
 				Controller_Set_Draw();
@@ -268,6 +268,26 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 					ImGui::Render();
 					ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 				}
+
+#if defined(DEBUG) || defined(_DEBUG)
+				std::stringstream Debug_FPS_State;
+				Debug_FPS_State << "FPS : " << FPS << std::endl;
+				Debug_FPS_State << "Main : " << static_cast<int>(Game_Manager::GetInstance()->Get_Current_Main_Screen()) << std::endl;
+				Debug_FPS_State << "Sub  : " << static_cast<int>(Game_Manager::GetInstance()->Get_Current_Sub_Screen()) << std::endl;
+				Debug_FPS_State << "Game : " << static_cast<int>(Game_Manager::GetInstance()->Get_Current_Game_Select_Screen()) << "\n" << std::endl;
+				Debug_FPS_State << "Main Buffer : " << static_cast<int>(Get_Main_Menu_Buffer()) << std::endl;
+				Debug_FPS_State << "Setting Buffer : " << static_cast<int>(Get_Setting_Buffer()) << std::endl;
+				Debug_FPS_State << "Setting State : " << static_cast<int>(Get_Setting_State()) << std::endl;
+				Debug_FPS_State << "Select State : " << static_cast<int>(Get_Select_Menu_Buffer()) << std::endl;
+				Debug_FPS_State << "Game Mode : " << static_cast<int>(Get_Game_Mode()) << "\n" << std::endl;
+				Debug_FPS_State << "BGM : " << static_cast<int>(Get_BGM_Scale_Buffer()) << std::endl;
+				Debug_FPS_State << "SFX : " << static_cast<int>(Get_SFX_Scale_Buffer()) << std::endl;
+
+				Debug->Print(Debug_FPS_State.str().c_str(), Light_Green);
+
+				Debug->Draw();
+				Debug->Clear();
+#endif	
 
 				// Fade Draw
 				Fade_Draw();

@@ -65,7 +65,7 @@ void Mash_Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	Total_Size_X = FIELD_H_COUNT * FIELD_UNIT_SIZE;
 	Total_Size_Z = FIELD_V_COUNT * FIELD_UNIT_SIZE;
 
-	Field_TexID = Texture_Manager::GetInstance()->GetID("Mash");
+	Field_TexID = Texture_Manager::GetInstance()->GetID("Floor");
 
 	Vertex3D* vertices = new Vertex3D[NUM_VERTEX];
 	// Make Vertex Index
@@ -94,7 +94,7 @@ void Mash_Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	bd.CPUAccessFlags = 0;
 
 	D3D11_SUBRESOURCE_DATA sd{};
-	sd.pSysMem = Mash_Field_Vertex;
+	sd.pSysMem = vertices;
 
 	g_pDevice->CreateBuffer(&bd, &sd, &Vertex_Buffer);
 

@@ -16,36 +16,71 @@ using namespace DirectX;
 void Billboard_Manager::Init()
 {
     m_ObjList.clear();
+    m_EffectPool.clear();
+
+    for (int i = 0; i < MAX_EFFECT_POOL; ++i)
+    {
+        m_EffectPool.push_back(new Billboard_Effect());
+    }
+
+    int texID = Texture_Manager::GetInstance()->GetID("Enemy_Real_Explosion");
+
+    if (texID != -1)
+    {
+        XMUINT2 patternSize = { 64, 64 };
+
+        m_ExplosionPatternID = SpriteAni_Get_Pattern_Info(texID, 16, 4, 0.05, patternSize, { 0, 0 }, false);
+    }
+    else
+    {
+        Debug::D_Out << "[Billboard Manager] Explosion Texture Not Found!" << std::endl;
+    }
 }
 
 void Billboard_Manager::Final()
 {
-    for (auto* obj : m_ObjList)
-    {
-        delete obj;
-    }
-
+    for (auto* obj : m_ObjList) delete obj;
     m_ObjList.clear();
+
+    for (auto* effect : m_EffectPool) delete effect;
+    m_EffectPool.clear();
 }
 
 void Billboard_Manager::Update(double dt)
 {
-    for (auto* obj : m_ObjList)
+    for (auto it = m_ObjList.begin(); it != m_ObjList.end(); )
     {
-        if (obj->IsActive())
+        Billboard_Object* obj = *it;
+        obj->Update(dt);
+        if (!obj->IsActive())
         {
-            obj->Update(dt);
+            delete obj;
+            it = m_ObjList.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    for (auto* effect : m_EffectPool)
+    {
+        if (effect->IsActive())
+        {
+            effect->Update(dt);
         }
     }
 }
 
 void Billboard_Manager::Draw()
 {
-    for (auto* obj : m_ObjList)
+    for (auto* obj : m_ObjList) obj->Draw();
+
+    for (auto* effect : m_EffectPool)
     {
-        if (obj->IsActive())
+        if (effect->IsActive())
         {
-            obj->Draw();
+            effect->Draw();
         }
     }
 }
@@ -74,7 +109,7 @@ void Billboard_Manager::Create(const XMFLOAT3& pos, Billboard_Type Type)
 
     case Billboard_Type::OBJECT:
     {
-        texID = Texture_Manager::GetInstance()->GetID("Logo");
+        texID = Texture_Manager::GetInstance()->GetID("Object");
 
         if (texID == -1)
         {
@@ -92,18 +127,25 @@ void Billboard_Manager::Create(const XMFLOAT3& pos, Billboard_Type Type)
 
 void Billboard_Manager::Create_Effect(const XMFLOAT3& pos, int patternID, float scale, Effect_Type Type)
 {
-    // Need?
-    switch (Type)
+    int finalPatternID = patternID;
+
+    if (Type == Effect_Type::EXPLOSION && m_ExplosionPatternID != -1)
+        finalPatternID = m_ExplosionPatternID;
+
+    if (finalPatternID == -1) return;
+
+    float finalScale = scale * 0.8f;
+
+    for (auto* effect : m_EffectPool)
     {
-    case Effect_Type::SMOKE:
-        break;
-    case Effect_Type::EXPLOSION:
-        break;
+        if (!effect->IsActive())
+        {
+            effect->Reset(finalPatternID, pos, finalScale);
+            return;
+        }
     }
 
-    Billboard_Effect* New_E = new Billboard_Effect(patternID, pos, scale);
-    New_E->Activate(pos);
-    m_ObjList.push_back(New_E);
+    Debug::D_Out << "Effect Pool Full!" << std::endl;
 }
 
 Billboard_Target* Billboard_Manager::Check_Collision(const AABB& box)

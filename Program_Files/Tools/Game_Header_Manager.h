@@ -41,6 +41,8 @@
 #include "Game_Screen_Manager.h"
 #include "Update_Game.h"
 #include "Main_Menu.h"
+#include "Setting.h"
+#include "Select_Game_Mode.h"
 
 // Debug Set
 #include "debug_text.h"

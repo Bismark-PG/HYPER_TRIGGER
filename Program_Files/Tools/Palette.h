@@ -88,5 +88,13 @@ namespace PALETTE
     static constexpr Palette Light_Gray  = { 211 / 255.f, 211 / 255.f, 211 / 255.f, 1.f };
     static constexpr Palette Gray		= { 128 / 255.f, 128 / 255.f, 128 / 255.f, 1.f };
     static constexpr Palette Dark_Gray	= { 64  / 255.f, 64  / 255.f, 64  / 255.f, 1.f };
+
+	// Alpha Scale
+	static constexpr Palette Alpha_Invisible	= { 0.0f, 0.0f, 0.0f, 0.0f };
+	static constexpr Palette Alpha_Translucent  = { 0.0f, 0.0f, 0.0f, 0.5f };
+	static constexpr Palette Alpha_Origin		= { 1.0f, 1.0f, 1.0f, 1.0f };
+	static constexpr Palette Alpha_T_Quarter	= { 1.0f, 1.0f, 1.0f, 0.75f };
+	static constexpr Palette Alpha_Half			= { 1.0f, 1.0f, 1.0f, 0.5f };
+	static constexpr Palette Alpha_Quarter		= { 1.0f, 1.0f, 1.0f, 0.25f };
 } 
 #endif // COLOR_LIST_H

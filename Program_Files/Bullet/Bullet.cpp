@@ -52,7 +52,6 @@ void Bullet_System_Draw()
         b->Draw();
     }
 }
-
 void Bullet_Fire(BulletType type, const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& dir)
 {
     Bullet* N_Bullet = nullptr;
@@ -60,7 +59,7 @@ void Bullet_Fire(BulletType type, const DirectX::XMFLOAT3& pos, const DirectX::X
     switch (type)
     {
     case BulletType::RAY:
-        N_Bullet = new Bullet_Ray(pos, dir, BulletOwner::PLAYER);
+        N_Bullet = new Bullet_Ray(pos, pos, dir, BulletOwner::PLAYER); // Old Ver Logic... Delect..? Upgrade...?
         break;
 
     case BulletType::GRENADE:

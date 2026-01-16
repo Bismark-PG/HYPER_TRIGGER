@@ -13,6 +13,7 @@
 #include "KeyLogger.h"
 #include <algorithm>
 #include <debug_ostream.h>
+#include "Resource_Manager.h"
 
 using namespace DirectX;
 
@@ -23,8 +24,8 @@ static float Camera_Far_z = 100.0f;
 static float Camera_FOV = XMConvertToRadians(70.0f);
 static XMFLOAT4X4 Camera_View_mtx = {};
 
-static float Camera_Distance = 2.5f;
-static float Camera_Height = 1.0f;
+static float Camera_Distance = 3.5f;
+static float Camera_Height = 2.5f;
 static XMFLOAT3 Camera_POS   = {};
 static XMFLOAT3 Camera_Front = {};
 static Player_Sights Current_Sights = {};
@@ -32,7 +33,11 @@ static float Camera_Sights_Offset = {};
 static float Is_Camera_Sights_Changed = false;
 
 static XMFLOAT3 Current_Camera_Pos = {};
-static float Mouse_Sensitivity = {};
+static float Mouse_Sensitivity = 0.01f;
+
+static bool Is_Menu_Mode = false;
+static XMFLOAT3 Menu_Cam_Pos = { 0.0f, 0.0f, 0.0f };
+static XMFLOAT3 Menu_Cam_Target = { 0.0f, 0.0f, 0.0f };
 
 void Player_Camera_Initialize()
 {
@@ -51,6 +56,33 @@ void Player_Camera_Finalize()
 
 void Player_Camera_Update(double elapsed_time)
 {
+    float dt = static_cast<float>(elapsed_time);
+
+    if (Is_Menu_Mode)
+    {
+        XMVECTOR P = XMLoadFloat3(&Menu_Cam_Pos);
+        XMVECTOR T = XMLoadFloat3(&Menu_Cam_Target);
+        XMVECTOR U = { 0.0f, 1.0f, 0.0f };
+
+        // Make Matrix View
+        XMMATRIX View = XMMatrixLookAtLH(P, T, U);
+        XMStoreFloat4x4(&Camera_View_mtx, View);
+
+        // Shader Update
+        Shader_Manager::GetInstance()->SetViewMatrix3D(View);
+
+        // Camera POS
+        Camera_POS = Menu_Cam_Pos;
+        XMStoreFloat3(&Camera_Front, XMVector3Normalize(T - P));
+
+        // Set Shader Projection
+        float Aspect = (float)Direct3D_GetBackBufferWidth() / (float)Direct3D_GetBackBufferHeight();
+        XMMATRIX Proj = XMMatrixPerspectiveFovLH(Camera_FOV, Aspect, Camera_Near_Z, Camera_Far_z);
+        Shader_Manager::GetInstance()->SetProjectionMatrix3D(Proj);
+
+        return;
+    }
+
     if (Is_Camera_Sights_Changed)
     {
         Player_Camera_Update_Sights();
@@ -106,6 +138,20 @@ void Player_Camera_Update(double elapsed_time)
     Shader_Manager::GetInstance()->SetProjectionMatrix3D(mtxPerspective);
 }
 
+void Player_Camera_Set_Menu_Mode(const XMFLOAT3& pos, const XMFLOAT3& target)
+{
+    Is_Menu_Mode = true;
+    Menu_Cam_Pos = pos;
+    Menu_Cam_Target = target;
+
+    Camera_POS = Menu_Cam_Pos;
+}
+
+void Player_Camera_Set_Game_Mode()
+{
+    Is_Menu_Mode = false;
+}
+
 const XMFLOAT3& Player_Camera_Get_POS()
 {
     return Camera_POS;
@@ -127,6 +173,11 @@ float Player_Camera_Get_Yaw()
 float Player_Camera_Get_Pitch()
 {
     return Camera_Pitch;
+}
+
+float Player_Camera_Get_Far_Z()
+{
+    return Camera_Far_z;
 }
 
 Player_Sights Player_Camera_Get_Now_Sights()

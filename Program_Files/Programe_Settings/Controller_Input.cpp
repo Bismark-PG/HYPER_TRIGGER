@@ -7,6 +7,7 @@
 ==============================================================================*/
 #include "Controller_Input.h"
 #include "Audio_Manager.h"
+#include "direct3d.h"
 
 static int UI_Controller_BG = -1;
 static int UI_Controller_Input = -1;
@@ -27,14 +28,17 @@ void Controller_Set_Initialize()
 {
 	Controller_Texture();
 
+	float Screen_W = static_cast<float>(Direct3D_GetBackBufferWidth());
+	float Screen_H = static_cast<float>(Direct3D_GetBackBufferHeight());
+
 	Controller_Setup_State = false;
 
 	STATE = CONTROLLER_STATE::NONE;
 
-	Alert_BG_Width	= SCREEN_WIDTH	* 0.75f;
-	Alert_BG_Height = SCREEN_HEIGHT * 0.75f;
-	Alert_BG_X = (SCREEN_WIDTH  - Alert_BG_Width)  * 0.5f;
-	Alert_BG_y = (SCREEN_HEIGHT - Alert_BG_Height) * 0.5f;
+	Alert_BG_Width	= Screen_W	* 0.75f;
+	Alert_BG_Height = Screen_H * 0.75f;
+	Alert_BG_X = (Screen_W  - Alert_BG_Width)  * 0.5f;
+	Alert_BG_y = (Screen_H - Alert_BG_Height) * 0.5f;
 
 	Alert_Width	 = Alert_BG_Width * 0.9f;
 	Alert_Height = Alert_Width	  * 0.15f;
@@ -153,7 +157,7 @@ bool Controller_Set_UP()
 
 void Controller_Texture()
 {
-	UI_Controller_BG			= Texture_Manager::GetInstance()->GetID("UI_Controller_BG");
+	UI_Controller_BG			= Texture_Manager::GetInstance()->GetID("UI_Background");
 	UI_Controller_Input			= Texture_Manager::GetInstance()->GetID("UI_Controller_Input");
 	UI_Controller_Output		= Texture_Manager::GetInstance()->GetID("UI_Controller_Output");
 	UI_Controller_Button_Up		= Texture_Manager::GetInstance()->GetID("UI_Controller_Button_Up");

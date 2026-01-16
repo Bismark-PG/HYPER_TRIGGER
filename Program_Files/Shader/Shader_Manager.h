@@ -69,6 +69,7 @@ public:
 
     // --- Methods for 2D Shader ---
     void Begin2D(Shader_Filter Filter = Shader_Filter::MAG_MIP_POINT);
+
     void SetWorldMatrix2D(const DirectX::XMMATRIX& matrix);
     void SetProjectionMatrix2D(const DirectX::XMMATRIX& matrix);
     void SetTexture2D(ID3D11ShaderResourceView* textureView);

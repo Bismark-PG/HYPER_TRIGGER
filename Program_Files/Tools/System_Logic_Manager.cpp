@@ -33,7 +33,9 @@ void System_Manager::Initialize(HWND hWnd, ID3D11Device* Device, ID3D11DeviceCon
 
 	// Initialize Game Setting Tools
 	Fade_Initialize();
-	Main_Logic_Initialize(Device, Context);
+	Mouse_UI_set();
+	Main_Logic_Initialize();
+	Game_Initialize(Device, Context);
 
 	// Initialize Debug Tools
 	GUI_Init(hWnd, Device, Context);
@@ -49,6 +51,7 @@ void System_Manager::Finalize()
 	GUI_Final();
 
 	// Finalize Game Setting Tools
+	Game_Finalize();
 	Main_Logic_Finalize();
 	Fade_Finalize();
 

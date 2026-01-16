@@ -38,7 +38,11 @@ void Billboard_Object::Draw()
         return;
     }
 
-    Billboard_Draw(m_TexID, m_Position, m_ScaleX, m_ScaleY, m_Pivot);
+    DirectX::XMFLOAT3 DrawPos = m_Position;
+    DrawPos.x -= m_ScaleX * 0.5f;
+    DrawPos.y -= m_ScaleY * 0.5f;
+
+    // Billboard_Draw(m_TexID, DrawPos, m_ScaleX, m_ScaleY, m_Pivot);
 }
 
 AABB Billboard_Object::GetAABB() const

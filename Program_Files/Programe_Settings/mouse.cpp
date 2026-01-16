@@ -16,10 +16,11 @@
 
 #include <windowsx.h>
 #include <assert.h>
-
+#include "Sprite.h"
+#include "Texture_Manager.h"
+#include "debug_ostream.h"
 
 #define SAFE_CLOSEHANDLE(h) if(h){CloseHandle(h); h = NULL;}
-
 
 static Mouse_State        gState = {};
 static HWND               gWindow = NULL;
@@ -37,6 +38,9 @@ static bool               gInFocus = true;
 static bool Debug_Mode = false;
 
 static void clipToWindow(void);
+
+static int Mouse_UI_Tex = -1;
+bool Mouse_Movement = false;
 
 void Mouse_Initialize(HWND window)
 {
@@ -367,6 +371,62 @@ void Debug_Mode_Set()
     else
         Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 }
+
+bool Is_Mouse_In_RECT(float mx, float my, float x, float y, float w, float h)
+{
+    return (mx >= x && mx <= x + w && my >= y && my <= y + h);
+}
+
+bool Is_Mouse_Moved()
+{
+    return Mouse_Movement;
+}
+
+void Return_Mouse_Movement()
+{
+    Mouse_Movement = false;
+}
+
+void Mouse_UI_Draw(Mouse_Info Info)
+{
+    Sprite_Draw(Mouse_UI_Tex, Info.X, Info.Y, Info.Size, Info.Size);
+
+    Debug::D_Out << "[Mouse] X : " << Info.X << " Y : " << Info.Y << std::endl;
+}
+
+Mouse_State Mouse_Get_Prev_State(Mouse_Info& Info)
+{
+    Mouse_State Now_State;
+    Mouse_GetState(&Now_State);
+    Info.X = static_cast<float>(Now_State.x);
+    Info.Y = static_cast<float>(Now_State.y);
+    
+    Mouse_Movement = (abs(Info.X - Info.Prev_X) > 1.0f || abs(Info.Y - Info.Prev_Y) > 1.0f);
+    Info.Prev_X = Info.X;
+    Info.Prev_Y = Info.Y;
+
+    return Now_State;
+}
+
+bool Mouse_State_Reset()
+{
+    Mouse_State InitState;
+    Mouse_GetState(&InitState);
+
+    return InitState.leftButton;
+}
+
+void Mouse_UI_set()
+{
+    Mouse_UI_Tex = Texture_Manager::GetInstance()->GetID("UI_Mouse_Cursor");
+    Mouse_Movement = false;
+
+    if (Mouse_UI_Tex == -1)
+    {
+        Debug::D_Out << "[Main Menu] Texture Init Error" << std::endl;
+    }
+}
+
 
 void clipToWindow(void)
 {

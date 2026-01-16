@@ -18,4 +18,6 @@ void Game_Draw();
 bool Get_Debug_Mode_State();
 void Set_Debug_Mode_State(bool State);
 
+void Game_Info_Reset();
+bool Game_Check_Is_Resetting();
 #endif // GAME_H

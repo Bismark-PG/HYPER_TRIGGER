@@ -1,6 +1,6 @@
 /*==============================================================================
 
-	Manage Enemy And Enemy Type [Enemy.h]
+	Manage Enemy [Enemy.h]
 
 	Author : Choi HyungJoon
 
@@ -10,20 +10,15 @@
 #include <DirectXMath.h>
 #include "Collision.h"
 #include "model.h"
+#include "Enemy_Type.h"
 
 enum class EnemyState
 {
-	IDLE,
-	CHASE,
-	WAIT,
-	RETURN
-};
-
-enum class EnemyType
-{
-	GROUND,
-	FLIGHT 
-};
+	CHASE,         
+	ATTACK_PREP,   
+	ATTACK_ACT,    
+	COOLDOWN       
+};				   
 
 class Enemy
 {
@@ -32,10 +27,9 @@ public:
 	virtual ~Enemy();
 
 	// --- Pulling System ---
-	virtual void Activate(const DirectX::XMFLOAT3& pos);
+	virtual void Activate(const DirectX::XMFLOAT3& pos, EnemyType type);
 	virtual void Deactivate();
 	bool IsActive() const { return m_IsActive; }
-	EnemyType GetType() const { return m_MyType; }
 
 	// --- Main Logic ---
 	virtual void Update(double elapsed_time);
@@ -49,25 +43,23 @@ public:
 protected:
 	// --- State ---
 	bool m_IsActive = false;
-	EnemyType m_MyType;
+	Enemy_Info m_Info;
 
 	// --- Stat ---
 	int m_HP = 100;
-	int m_MaxHP = 100;
-	float m_Speed = 2.0f;
+	float m_Gravity = 0.0f;
+	float m_BottomOffset = 0.0f;
 
 	// --- Transform ---
 	DirectX::XMFLOAT3 Position = { 0.0f, 0.0f, 0.0f }; 
 	DirectX::XMFLOAT3 Rotation = { 0.0f, 0.0f, 0.0f }; 
-	float m_Scale = 1.0f;                                
 
 	// --- Resource ---
 	MODEL* m_pModel = nullptr;
-	EnemyState m_State = EnemyState::IDLE;
-	DirectX::XMFLOAT3 m_SpawnPos = {};
-	float m_WaitTimer = 0.0f;
-	float m_Gravity = 0.0f;
-	float m_BottomOffset = 0.0f;
+	EnemyState m_State = EnemyState::CHASE;
+
+	float m_StateTimer = 0.0f;
+	DirectX::XMFLOAT3 m_TargetPos = {};
 
 	// --- Physical Defense ---
 	void Enemy_Collision_Map(double dt);

@@ -24,11 +24,14 @@ public:
 
     void Init();
     void Final();
+
     void Update(double dt);
     void Draw();
 
-    void Fire(BulletType type, const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& dir, BulletOwner owner = BulletOwner::PLAYER);
+    void Reset();
 
+    void Fire(BulletType type, const DirectX::XMFLOAT3& visualPos, const DirectX::XMFLOAT3& logicalPos,
+        const DirectX::XMFLOAT3& dir, BulletOwner owner = BulletOwner::PLAYER);
 private:
     Bullet_Manager() = default;
     ~Bullet_Manager() = default;

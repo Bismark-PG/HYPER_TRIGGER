@@ -13,6 +13,7 @@
 #include <map>
 #include <vector>
 #include <mutex>
+#include <chrono>
 
 struct Sound_Data
 {
@@ -21,6 +22,13 @@ struct Sound_Data
     BYTE*                Data{};
     int                  Length{};
     int                  Play_Length{};
+};
+
+struct BGM_Layer
+{
+    std::string          Name{};
+    IXAudio2SourceVoice* Source{};
+    float                Layer_Volume{};
 };
 
 class Audio_Manager
@@ -37,31 +45,47 @@ public:
     void Init();
     void Final();
 
-    // Get Sound Data for Audio file
-    // Success : true, Fail or Already load : false
+    // --- Loading ---
     bool Load_BGM(const std::string& name, const char* pFilePath);
     bool Load_SFX(const std::string& name, const char* pFilePath);
 
-    // Unload Sound Data
     void Unload_BGM(const std::string& name);
     void Unload_SFX(const std::string& name);
 
-    // Manage Sound Player
+    // --- Playback Control ---
+
+    // Play Only One BGM
     void Play_BGM(const std::string& name, bool bLoop = true);
-    void Stop_BGM(const std::string& name);
-    
-    // Stop All BGM
+    void Pause_BGM(bool isPause);
+
+    // Play Layer BGMs
+    void Play_Layered_BGM(const std::vector<std::string>& names, bool bLoop = true);
+
+    // Stop Layer BGM
     void Stop_BGM();
-    
+
+    // Stop BGM With Name
+    void Stop_BGM(const std::string& name);
+
     void Play_SFX(const std::string& name);
     void Stop_All_SFX();
 
-    // Manage Volume
+    // --- Volume & Control ---
+
+    // Master Volume Setting
     void Set_Target_BGM_Volume(float volume);
     void Set_Target_SFX_Volume(float volume);
-
     void Update_Current_BGM_Volume(float volume);
 
+    // Set Volume For Some Layer
+    void Set_Layer_Volume(const std::string& name, float volume);
+
+    // Check Loop For Trigger
+    bool Is_BGM_Loop_Just_Finished();
+    int Get_Current_Loop_Count() const;
+    void Reset_Loop_Count();
+
+    // --- Getters ---
     float Get_Target_BGM_Volume() const;
     float Get_Current_BGM_Volume() const;
     float Get_Target_SFX_Volume() const;
@@ -80,9 +104,14 @@ private:
     std::map<std::string, Sound_Data> BGMs;
     std::map<std::string, Sound_Data> SFXs;
 
+    // Callbacks & Voices
+    class Voice_Callback; // Forward Declaration
+    Voice_Callback* Voice_Call_back = nullptr;
+
     std::vector<IXAudio2SourceVoice*> Active_SFX_Voices;
     std::mutex                        Voice_Mutex;
 
+    // Volume States
     float Current_BGM_Volume = 0.5f;
     float Target_BGM_Volume = 0.5f;
     float Target_SFX_Volume = 0.5f;
@@ -90,10 +119,13 @@ private:
     // Save Playing BGM Info
     std::string Now_Playing_BGM_Name;
 
-    // Callback Handler for SFX
-    class Voice_Callback;
-    Voice_Callback* Voice_Call_back = nullptr;
+    // Layer System
+    std::vector<BGM_Layer> Active_BGM_Layers;
+    bool Is_Loop_Flag = false; // Check Loop
+
+    int m_CurrentLoopCount = 0;
+    std::chrono::high_resolution_clock::time_point Last_Loop_Check_Time;
+    friend class Voice_Callback;
 };
 
 #endif // AUDIO_MANAGER_H
-

@@ -15,14 +15,14 @@ Game_Manager* Game_Manager::GetInstance()
 
 void Game_Manager::Change_Screen(Main_Screen M_Screen, Sub_Screen S_Screen, Game_Select_Screen G_Screen)
 {
-	Current_Main_Screen = M_Screen;
-	Current_Sub_Screen = S_Screen;
-	Current_Game_Screen = G_Screen;
+	Next_Main_Screen = M_Screen;
+	Next_Sub_Screen = S_Screen;
+	Next_Game_Screen = G_Screen;
 }
 
 void Game_Manager::Update_Main_Screen(Main_Screen Main_Input)
 {
-	Current_Main_Screen = Main_Input;
+	Next_Main_Screen = Main_Input;
 }
 
 Main_Screen Game_Manager::Get_Current_Main_Screen() const
@@ -32,7 +32,7 @@ Main_Screen Game_Manager::Get_Current_Main_Screen() const
 
 void Game_Manager::Update_Sub_Screen(Sub_Screen Sub_Input)
 {
-	Current_Sub_Screen = Sub_Input;
+	Next_Sub_Screen = Sub_Input;
 }
 
 Sub_Screen Game_Manager::Get_Current_Sub_Screen() const
@@ -42,10 +42,17 @@ Sub_Screen Game_Manager::Get_Current_Sub_Screen() const
 
 void Game_Manager::Update_Game_Select_Screen(Game_Select_Screen Game_Select_Input)
 {
-	Current_Game_Screen = Game_Select_Input;
+	Next_Game_Screen = Game_Select_Input;
 }
 
 Game_Select_Screen Game_Manager::Get_Current_Game_Select_Screen() const
 {
 	return Current_Game_Screen;
+}
+
+void Game_Manager::Apply_Screen_Changes()
+{
+	Current_Main_Screen = Next_Main_Screen;
+	Current_Sub_Screen = Next_Sub_Screen;
+	Current_Game_Screen = Next_Game_Screen;
 }

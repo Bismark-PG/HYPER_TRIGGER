@@ -43,6 +43,11 @@ typedef struct MouseState_tag
     Mouse_PositionMode positionMode;
 } Mouse_State;
 
+struct Mouse_Info
+{
+    float X, Y, Size;
+    float Prev_X, Prev_Y;
+};
 
 // マウスモジュールの初期化
 void Mouse_Initialize(HWND window);
@@ -74,6 +79,15 @@ void Mouse_ProcessMessage(UINT message, WPARAM wParam, LPARAM lParam);
 // Debug Tools
 void Debug_Mode_Switcher();
 void Debug_Mode_Set();
+
+// Mouse POS Check And Draw
+bool Is_Mouse_In_RECT(float mx, float my, float x, float y, float w, float h);
+bool Is_Mouse_Moved();
+void Return_Mouse_Movement();
+void Mouse_UI_Draw(Mouse_Info Info);
+Mouse_State Mouse_Get_Prev_State(Mouse_Info& Info);
+bool Mouse_State_Reset();
+void Mouse_UI_set();
 
 // 導入方法
 //

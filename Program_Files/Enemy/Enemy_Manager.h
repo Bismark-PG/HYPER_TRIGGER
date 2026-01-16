@@ -25,6 +25,7 @@ public:
 
 	void Update(double elapsed_time);
 	void Draw();
+	void Reset();
 
 	// Call to spawn an enemy
 	void Spawn(const DirectX::XMFLOAT3& pos, EnemyType type);

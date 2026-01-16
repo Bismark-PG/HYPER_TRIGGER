@@ -12,9 +12,7 @@
 #include <algorithm>
 #include "imgui.h"
 #include "imgui_impl_win32.h"
-
-float SCREEN_WIDTH  = 0.0f;
-float SCREEN_HEIGHT = 0.0f;
+#include "Game_Screen_Manager.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -50,8 +48,7 @@ HWND Window_Manager::Init(HINSTANCE hInstance, int nCmdShow)
 	}
 
 	RECT WindowRect = { 0, 0, (LONG)m_ScreenWidth, (LONG)m_ScreenHeight };
-
-	DWORD WinStyle = WS_OVERLAPPEDWINDOW;
+	DWORD WinStyle = WS_OVERLAPPEDWINDOW ^ (WS_MAXIMIZEBOX | WS_THICKFRAME);
 
 	AdjustWindowRect(&WindowRect, WinStyle, FALSE);
 
@@ -114,32 +111,51 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;
 
+	bool Allow_Mouse_Input = true;
+	Main_Screen Current_State = Game_Manager::GetInstance()->Get_Current_Main_Screen();
+
+	if (Current_State == Main_Screen::M_WAIT || Current_State == Main_Screen::MAIN)
+	{
+		Allow_Mouse_Input = false;
+	}
+
+	if (Allow_Mouse_Input)
+	{
+		switch (message)
+		{
+		case WM_ACTIVATEAPP:
+			Mouse_ProcessMessage(message, wParam, lParam);
+			break;
+
+		case WM_INPUT:
+		case WM_MOUSEMOVE:
+		case WM_LBUTTONDOWN:
+		case WM_LBUTTONUP:
+		case WM_RBUTTONDOWN:
+		case WM_RBUTTONUP:
+		case WM_MBUTTONDOWN:
+		case WM_MBUTTONUP:
+		case WM_MOUSEWHEEL:
+		case WM_XBUTTONDOWN:
+		case WM_XBUTTONUP:
+		case WM_MOUSEHOVER:
+			if (Allow_Mouse_Input)
+				Mouse_ProcessMessage(message, wParam, lParam);
+			break;
+		}
+	}
+
 	switch (message)
 	{
-	case WM_ACTIVATEAPP:
-		Keyboard_ProcessMessage(message, wParam, lParam);
-		Mouse_ProcessMessage(message, wParam, lParam);
-		break;
-	case WM_INPUT:
-	case WM_MOUSEMOVE:
-	case WM_LBUTTONDOWN:
-	case WM_LBUTTONUP:
-	case WM_RBUTTONDOWN:
-	case WM_RBUTTONUP:
-	case WM_MBUTTONDOWN:
-	case WM_MBUTTONUP:
-	case WM_MOUSEWHEEL:
-	case WM_XBUTTONDOWN:
-	case WM_XBUTTONUP:
-	case WM_MOUSEHOVER:
-		Mouse_ProcessMessage(message, wParam, lParam);
-		break;
+    case WM_ACTIVATEAPP:
+        Keyboard_ProcessMessage(message, wParam, lParam);
+        break;
 
 	case WM_KEYDOWN:
-		if (wParam == VK_ESCAPE)
-		{
-			SendMessage(hWnd, WM_CLOSE, 0, 0);
-		}
+		//if (wParam == VK_ESCAPE)
+		//{
+		//	SendMessage(hWnd, WM_CLOSE, 0, 0);
+		//}
 	case WM_SYSKEYDOWN:
 	case WM_KEYUP:
 	case WM_SYSKEYUP:

@@ -12,6 +12,11 @@
 void Game_UI_Initialize();
 void Game_UI_Finalize();
 
+void Game_UI_Update(double elapsed_time);
+
 void Game_UI_Draw();
+void Game_UI_Texture();
+
+void Game_UI_Trigger_Damage();
 
 #endif // GAME_UI_H

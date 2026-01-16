@@ -13,45 +13,64 @@
 #include <assert.h>
 #include <mmsystem.h>
 #include <algorithm>
+#include "Debug_ostream.h"
 // SFX Lifetime Manager
 // If SFX Play Done, Destroy Voice
 class Audio_Manager::Voice_Callback : public IXAudio2VoiceCallback
 {
 public:
-    Voice_Callback(std::vector<IXAudio2SourceVoice*>& activeVoices, std::mutex& mutex)
-        : m_ActiveVoices(activeVoices), m_Mutex(mutex) {
+    Voice_Callback(Audio_Manager* pManager, std::vector<IXAudio2SourceVoice*>& activeVoices, std::mutex& mutex)
+        : m_pManager(pManager), m_ActiveVoices(activeVoices), m_Mutex(mutex)
+    {
+        Last_Loop_Time = std::chrono::high_resolution_clock::now();
     }
     ~Voice_Callback() {}
 
-    // If End Buffer, Call This
+    void OnStreamEnd() override {}
+    void OnVoiceProcessingPassEnd() override {}
+    void OnVoiceProcessingPassStart(UINT32 BytesRequired) override {}
+    void OnBufferStart(void* pBufferContext) override {}
+    void OnVoiceError(void* pBufferContext, HRESULT Error) override {}
+    void OnLoopEnd(void* pBufferContext) override
+    {
+        if (m_pManager)
+        {
+            auto Now = std::chrono::high_resolution_clock::now();
+
+            std::chrono::duration<float> duration = Now - m_pManager->Last_Loop_Check_Time;
+
+            if (duration.count() > 5.0f)
+            {
+                m_pManager->Is_Loop_Flag = true;
+                m_pManager->m_CurrentLoopCount++;
+
+                m_pManager->Last_Loop_Check_Time = Now;
+
+                Debug::D_Out << "[Audio] Loop Count : " << m_pManager->m_CurrentLoopCount << std::endl;
+            }
+        }
+    }
+
     void OnBufferEnd(void* pBufferContext) override
     {
         IXAudio2SourceVoice* pSourceVoice = (IXAudio2SourceVoice*)pBufferContext;
 
         std::lock_guard<std::mutex> lock(m_Mutex);
 
-        // Find the right Voice
         auto Find = std::find(m_ActiveVoices.begin(), m_ActiveVoices.end(), pSourceVoice);
 
         if (Find != m_ActiveVoices.end())
+        {
             m_ActiveVoices.erase(Find);
-
-        // If No More Needed, Destroy Voice
-        pSourceVoice->DestroyVoice();
+            pSourceVoice->DestroyVoice();
+        }
     }
 
-    // Unused used Callback Function
-    void OnStreamEnd() override {}
-    void OnVoiceProcessingPassEnd() override {}
-    void OnVoiceProcessingPassStart(UINT32 SamplesRequired) override {}
-    void OnBufferStart(void* pBufferContext) override {}
-    void OnLoopEnd(void* pBufferContext) override {}
-    void OnVoiceError(void* pBufferContext, HRESULT Error) override {}
-
 private:
-    // Make Creator In Private << Most Important
+    Audio_Manager* m_pManager; // Manager Pointer
     std::vector<IXAudio2SourceVoice*>& m_ActiveVoices;
     std::mutex& m_Mutex;
+    std::chrono::steady_clock::time_point Last_Loop_Time;
 };
 
 // Singleton Instance Accessor
@@ -82,14 +101,19 @@ Audio_Manager::~Audio_Manager()
 void Audio_Manager::Init()
 {
     // Prevent Multiple Initialization
-    if (X_Audio) return;
-
     XAudio2Create(&X_Audio, 0);
     assert(X_Audio);
     X_Audio->CreateMasteringVoice(&m_pMasteringVoice);
     assert(m_pMasteringVoice);
 
-    Voice_Call_back = new Voice_Callback(Active_SFX_Voices, Voice_Mutex);
+    Voice_Call_back = new Voice_Callback(this, Active_SFX_Voices, Voice_Mutex);
+
+    Target_BGM_Volume = 0.5f;
+    Current_BGM_Volume = 0.5f;
+    Target_SFX_Volume = 0.5f;
+
+    Active_BGM_Layers.clear();
+    Is_Loop_Flag = false;
 }
 
 // Finalize
@@ -210,35 +234,94 @@ void Audio_Manager::Unload_SFX(const std::string& name)
 // Manage Sound Player
 void Audio_Manager::Play_BGM(const std::string& name, bool bLoop)
 {
-    auto Find = BGMs.find(name);
-    if (Find == BGMs.end() || !Find->second.Source)
+    std::vector<std::string> single;
+    single.push_back(name);
+
+    Play_Layered_BGM(single, bLoop);
+
+    Set_Layer_Volume(name, 1.0f);
+}
+
+void Audio_Manager::Pause_BGM(bool isPause)
+{
+    for (auto& layer : Active_BGM_Layers)
     {
-        return;
+        if (layer.Source)
+        {
+            if (isPause)
+            {
+                layer.Source->Stop();
+            }
+            else
+            {
+                layer.Source->Start();
+            }
+        }
+    }
+}
+
+void Audio_Manager::Play_Layered_BGM(const std::vector<std::string>& names, bool bLoop)
+{
+    Stop_BGM();
+
+    if (names.empty()) return;
+
+    Now_Playing_BGM_Name = names[0];
+
+    UINT32 operationSet = 1;
+
+    for (const auto& name : names)
+    {
+        auto it = BGMs.find(name);
+        if (it == BGMs.end()) continue;
+
+        Sound_Data& data = it->second;
+        IXAudio2SourceVoice* pSource = nullptr;
+
+        if (FAILED(X_Audio->CreateSourceVoice(&pSource, &data.WAVE_Format, 0, XAUDIO2_DEFAULT_FREQ_RATIO, Voice_Call_back)))
+            continue;
+
+        XAUDIO2_BUFFER buffer = { 0 };
+        buffer.pAudioData = data.Data;
+        buffer.Flags = XAUDIO2_END_OF_STREAM;
+        buffer.AudioBytes = data.Length;
+        buffer.LoopCount = bLoop ? XAUDIO2_LOOP_INFINITE : 0;
+        buffer.pContext = nullptr;
+
+        pSource->SubmitSourceBuffer(&buffer);
+
+        float startVol = 0.0f;
+        pSource->SetVolume(startVol * Target_BGM_Volume);
+
+        pSource->Start(0, operationSet);
+
+        BGM_Layer layer;
+        layer.Name = name;
+        layer.Source = pSource;
+        layer.Layer_Volume = startVol;
+        Active_BGM_Layers.push_back(layer);
     }
 
-    Sound_Data& BGM_Data = Find->second;
+    X_Audio->CommitChanges(operationSet);
 
-    BGM_Data.Source->Stop();
-    BGM_Data.Source->FlushSourceBuffers();
+    Is_Loop_Flag = false;
+}
 
-    XAUDIO2_BUFFER Buffer{};
-    Buffer.AudioBytes = BGM_Data.Length;
-    Buffer.pAudioData = BGM_Data.Data;
-    Buffer.PlayBegin = 0;
-    Buffer.PlayLength = BGM_Data.Play_Length;
-
-    if (bLoop)
+void Audio_Manager::Stop_BGM()
+{
+    for (auto& layer : Active_BGM_Layers)
     {
-        Buffer.LoopBegin = 0;
-        Buffer.LoopLength = BGM_Data.Play_Length;
-        Buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
+        if (layer.Source)
+        {
+            layer.Source->Stop();
+            layer.Source->FlushSourceBuffers();
+            layer.Source->DestroyVoice();
+        }
     }
 
-    BGM_Data.Source->SubmitSourceBuffer(&Buffer, NULL);
-    BGM_Data.Source->SetVolume(Current_BGM_Volume);
-    BGM_Data.Source->Start();
+    Active_BGM_Layers.clear();
 
-    Now_Playing_BGM_Name = name;
+    Now_Playing_BGM_Name = ""; 
 }
 
 void Audio_Manager::Stop_BGM(const std::string& name)
@@ -250,17 +333,6 @@ void Audio_Manager::Stop_BGM(const std::string& name)
 
     if (name == Now_Playing_BGM_Name)
         Now_Playing_BGM_Name = "";
-}
-
-void Audio_Manager::Stop_BGM()
-{
-    for (auto const& Find : BGMs)
-    {
-        if (Find.second.Source)
-            Find.second.Source->Stop();
-    }
-
-    Now_Playing_BGM_Name = "";
 }
 
 void Audio_Manager::Play_SFX(const std::string& name)
@@ -309,24 +381,72 @@ void Audio_Manager::Stop_All_SFX()
 // Manage Volume
 void Audio_Manager::Set_Target_BGM_Volume(float volume)
 {
-    Target_BGM_Volume = std::max(0.0f, std::min(1.0f, volume));
-    Update_Current_BGM_Volume(Target_BGM_Volume);
+    Target_BGM_Volume = std::max(0.0f, std::min(volume, 1.0f));
+    Current_BGM_Volume = Target_BGM_Volume;
+
+    for (auto& layer : Active_BGM_Layers)
+    {
+        if (layer.Source)
+        {
+            layer.Source->SetVolume(layer.Layer_Volume * Target_BGM_Volume);
+        }
+    }
 }
 
 void Audio_Manager::Set_Target_SFX_Volume(float volume)
 {
-    Target_SFX_Volume = std::max(0.0f, std::min(1.0f, volume));
+    Target_SFX_Volume = std::max(0.0f, std::min(volume, 1.0f));
 }
 
 void Audio_Manager::Update_Current_BGM_Volume(float volume)
 {
-    Current_BGM_Volume = std::max(0.0f, std::min(1.0f, volume));
+    Current_BGM_Volume = volume;
 
-    for (auto const& pair : BGMs)
+    for (auto& layer : Active_BGM_Layers)
     {
-        if (pair.second.Source)
-            pair.second.Source->SetVolume(Current_BGM_Volume);
+        if (layer.Source)
+        {
+            layer.Source->SetVolume(layer.Layer_Volume * Current_BGM_Volume);
+        }
     }
+}
+
+void Audio_Manager::Set_Layer_Volume(const std::string& name, float volume)
+{
+    volume = std::max(0.0f, std::min(volume, 1.0f));
+
+    for (auto& layer : Active_BGM_Layers)
+    {
+        if (layer.Name == name)
+        {
+            layer.Layer_Volume = volume;
+
+            if (layer.Source)
+            {
+                layer.Source->SetVolume(layer.Layer_Volume * Target_BGM_Volume);
+            }
+            return;
+        }
+    }
+}
+bool Audio_Manager::Is_BGM_Loop_Just_Finished()
+{
+    if (Is_Loop_Flag)
+    {
+        Is_Loop_Flag = false;
+        return true;
+    }
+    return false;
+}
+
+int Audio_Manager::Get_Current_Loop_Count() const
+{
+    return m_CurrentLoopCount;
+}
+
+void Audio_Manager::Reset_Loop_Count()
+{
+    m_CurrentLoopCount = 0;
 }
 
 float Audio_Manager::Get_Target_BGM_Volume() const

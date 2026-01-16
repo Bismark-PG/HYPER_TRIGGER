@@ -12,6 +12,7 @@
 #include "direct3d.h"    
 #include "System_Timer.h"
 #include "Fade.h"
+#include "BGM_Mixer.h"
 #include "Audio_Manager.h"
 #include "Shader_Manager.h"
 using namespace DirectX;
@@ -151,8 +152,9 @@ void Title_Update(double elapsed_time)
         Timer += dt;
         if (Timer >= 1.0f)
         {
-            Fade_Start(FADE_DURATION, true);
             Current_State = INTRO_STATE::FADE_OUT_END;
+            Mixer_Init();
+            Fade_Start(FADE_DURATION, true);
         }
         break;
 

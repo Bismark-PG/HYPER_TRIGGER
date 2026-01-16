@@ -21,7 +21,7 @@ public:
 
     void Init();
 
-    void Global_Light_Set_Up();
+    void Global_Light_Set_Up() const;
 
     void Global_Light_Update(double elapsed_time);
 

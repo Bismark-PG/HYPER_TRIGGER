@@ -38,23 +38,76 @@ void Game_Texture_Load()
 
     //-------------------------------------------<< In Game Texture >>-------------------------------------------//
     //-----------------------Mash Field Texture-----------------------//
-    Texture_M->Load("Mash_Grass", L"Resource/Texture/Grass.jpg");
-    Texture_M->Load("Mash_Dirt", L"Resource/Texture/Dirt.jpg");
     Texture_M->Load("Mash", L"Resource/Texture/OBJ/Mash.png");
+    Texture_M->Load("Floor", L"Resource/Texture/OBJ/Floor.png");
+
+    //----------------------Effects Texture----------------------//
+    Texture_M->Load("Player_Explosion", L"Resource/Texture/Animation/Explosion_Light_1.png");
+    Texture_M->Load("Enemy_Explosion", L"Resource/Texture/Animation/Explosion_Light_Big_Fixed.png");
+    Texture_M->Load("Enemy_Real_Explosion", L"Resource/Texture/Animation/Explosion.png");
+
+    //----------------------Billborad Texture----------------------//
+    Texture_M->Load("Target", L"Resource/Texture/Other/Target.png");
+    Texture_M->Load("EXP", L"Resource/Texture/Other/EXP.png");
+    Texture_M->Load("HP", L"Resource/Texture/Other/HP.png");
+    Texture_M->Load("Bullet", L"Resource/Texture/Other/Bullet.png");
+    Texture_M->Load("Object", L"Resource/Texture/Other/OBJ.png");
 
     //----------------------------------------------<< BG Texture >>----------------------------------------------//
+    Texture_M->Load("BG_Menu", L"Resource/Texture/BG/BG_Menu.png");
+    Texture_M->Load("BG_Title", L"Resource/Texture/BG/BG_Title.png");
 
     //----------------------------------------------<< UI Texture >>----------------------------------------------//
-    Texture_M->Load("Aim", L"Resource/Texture/Aim.png");
-    Texture_M->Load("HP", L"Resource/Texture/HP.jpg");
+    //---------------------UI : Mouse Texture---------------------//
+    Texture_M->Load("UI_Mouse_Cursor", L"Resource/Texture/UI/UI_Mouse_Cursor.png");
+    
+    //---------------------UI : BackGround Texture---------------------//
+    Texture_M->Load("UI_Background", L"Resource/Texture/UI/UI_Background.png");
+
+    //---------------------UI : In Game Texture---------------------//
+    Texture_M->Load("Aim", L"Resource/Texture/UI/UI_Aim.png");
+    Texture_M->Load("HP_Bar", L"Resource/Texture/UI/UI_HP.png");
+    Texture_M->Load("HP_Fill", L"Resource/Texture/UI/UI_HP_BAR.png");
+    Texture_M->Load("EXP_Bar", L"Resource/Texture/UI/UI_EXP.png");
+    Texture_M->Load("EXP_Fill", L"Resource/Texture/UI/UI_EXP_BAR.png");
 
     //---------------------UI : Main Menu Texture---------------------//
     Texture_M->Load("Start", L"Resource/Texture/UI/Menu_Start.png");
     Texture_M->Load("Settings", L"Resource/Texture/UI/Menu_Settings.png");
     Texture_M->Load("Exit", L"Resource/Texture/UI/Menu_Exit.png");
+    Texture_M->Load("UI_Back", L"Resource/Texture/UI/Menu_Back.png");
+
+    //---------------------UI : Game Menu Texture---------------------//
+    Texture_M->Load("Wave", L"Resource/Texture/UI/UI_Wave.png");
+    Texture_M->Load("Endless", L"Resource/Texture/UI/UI_Endless.png");
+    Texture_M->Load("Main", L"Resource/Texture/UI/UI_Main.png");
+    Texture_M->Load("Return", L"Resource/Texture/UI/UI_Return.png");
+
+    //--------------------UI : Settuing Menu Texture--------------------//
+    Texture_M->Load("UI_BGM", L"Resource/Texture/UI/Settings_BGM.png");
+    Texture_M->Load("UI_SFX", L"Resource/Texture/UI/Settings_SFX.png");
+    Texture_M->Load("UI_Sensitivity", L"Resource/Texture/UI/Settings_Sensitivity.png");
+    Texture_M->Load("UI_Window_Mode", L"Resource/Texture/UI/Settings_W_Mode_Fixed.png");
+    Texture_M->Load("UI_Full_Screen_Mode", L"Resource/Texture/UI/Settings_FS_Mode.png");
+
+    //-----------------------UI : Number Texture-----------------------//
+    Texture_M->Load("UI_Num_MIN", L"Resource/Texture/UI/Num/UI_Num_Min.png");
+    Texture_M->Load("UI_Num_1", L"Resource/Texture/UI/Num/UI_Num_1.png");
+    Texture_M->Load("UI_Num_2", L"Resource/Texture/UI/Num/UI_Num_2.png");
+    Texture_M->Load("UI_Num_3", L"Resource/Texture/UI/Num/UI_Num_3.png");
+    Texture_M->Load("UI_Num_4", L"Resource/Texture/UI/Num/UI_Num_4.png");
+    Texture_M->Load("UI_Num_5", L"Resource/Texture/UI/Num/UI_Num_5.png");
+    Texture_M->Load("UI_Num_6", L"Resource/Texture/UI/Num/UI_Num_6.png");
+    Texture_M->Load("UI_Num_7", L"Resource/Texture/UI/Num/UI_Num_7.png");
+    Texture_M->Load("UI_Num_8", L"Resource/Texture/UI/Num/UI_Num_8.png");
+    Texture_M->Load("UI_Num_9", L"Resource/Texture/UI/Num/UI_Num_9.png");
+    Texture_M->Load("UI_Num_MAX", L"Resource/Texture/UI/Num/UI_Num_Max.png");
+
+    Texture_M->Load("UI_Num_Button_L", L"Resource/Texture/UI/Num/UI_Button_L.png");
+    Texture_M->Load("UI_Num_Button_R", L"Resource/Texture/UI/Num/UI_Button_R.png");
+    Texture_M->Load("UI_Score_Number", L"Resource/Texture/UI/Num/UI_Num_Animation.png");
 
     //---------------------UI : Controller Texture---------------------//
-    Texture_M->Load("UI_Controller_BG", L"Resource/Texture/Controller/Controller_Input_BG_Fixed.png");
     Texture_M->Load("UI_Controller_Input", L"Resource/Texture/Controller/Controller_Input_Alert_Fixed.png");
     Texture_M->Load("UI_Controller_Output", L"Resource/Texture/Controller/Controller_Output_Alert_Fixed.png");
     Texture_M->Load("UI_Controller_Button_Up", L"Resource/Texture/Controller/A_Pressed_UP.png");
@@ -71,11 +124,5 @@ void Game_Texture_Load()
     Texture_M->Load("Pixel_Black", L"Resource/Texture/Other/B_Pixel.png");
 
     // Sample
-    Texture_M->Load("Effect_White", L"Resource/Texture/Explosion.png");
-    Texture_M->Load("Cube_Sample", L"Resource/Texture/Cube_Sample.png");
-    Texture_M->Load("Box_Sample", L"Resource/Texture/Box_Sample.png");
-
-    Texture_M->Load("TextSample", L"Resource/Texture/w.png");
-    Texture_M->Load("Target", L"Resource/Texture/Player_Avoid_Collision.png");
-
+    Texture_M->Load("TextSample", L"Resource/Texture/BG/RGBCMYK/White.png");
 }

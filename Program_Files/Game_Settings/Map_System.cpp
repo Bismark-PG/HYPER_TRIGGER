@@ -19,41 +19,25 @@ using namespace DirectX;
 
 static MapObject Map_OBJ[]
 {
+	// (Ground)
 	{FIELD, { 0.0f, 0.0f, 0.0f }, {}, {}, {{-250.0f, -1.0f, -250.0f}, {250.0f, 0.0f, 250.0f}}},
 
-	{WALL, { -8.0f, 0.5f, 10.0f }}, {WALL, { -8.0f, 1.5f, 10.0f }}, {WALL, { -8.0f, 2.5f, 10.0f }},
-	{WALL, {  8.0f, 0.5f, 10.0f }}, {WALL, {  8.0f, 1.5f, 10.0f }}, {WALL, {  8.0f, 2.5f, 10.0f }},
-	{WALL, { -8.0f, 3.5f, 10.0f }}, {WALL, { -7.0f, 3.5f, 10.0f }}, {WALL, { -6.0f, 3.5f, 10.0f }},
-	{WALL, {  8.0f, 3.5f, 10.0f }}, {WALL, {  7.0f, 3.5f, 10.0f }}, {WALL, {  6.0f, 3.5f, 10.0f }},
+	{WALL, { -10.0f, 1.5f, -10.0f }}, {WALL, { -10.0f, 1.5f,  10.0f }},
+	{WALL, {  10.0f, 1.5f, -10.0f }}, {WALL, {  10.0f, 1.5f,  10.0f }},
 
-	{WALL, { -15.0f, 0.5f, 25.0f }},
-	{WALL, { -12.0f, 0.5f, 28.0f }},
-	{WALL, { -18.0f, 0.5f, 30.0f }}, {WALL, { -18.0f, 1.5f, 30.0f }},
-	{WALL, { -10.0f, 0.5f, 35.0f }},
+	{WALL, { -20.0f, 0.5f, 0.0f }},
+	{WALL, { -23.0f, 1.5f, 0.0f }},
+	{WALL, { -26.0f, 2.5f, 0.0f }},
+	{WALL, { -29.0f, 3.5f, 0.0f }},
+	{WALL, { -32.0f, 3.5f, 0.0f }},
 
-	{WALL, { 15.0f, 0.5f, 25.0f }},
-	{WALL, { 15.0f, 1.5f, 27.0f }},
-	{WALL, { 15.0f, 2.5f, 29.0f }},
-	{WALL, { 15.0f, 3.5f, 31.0f }},
-	{WALL, { 15.0f, 4.5f, 33.0f }},
-	{WALL, { 17.0f, 4.5f, 33.0f }},
+	{WALL, { 20.0f, 1.0f, 0.0f }},
+	{WALL, { 25.0f, 3.0f, 0.0f }},
 
+	{WALL, { 0.0f, 2.5f, 30.0f }}, {WALL, { 0.0f, 5.5f, 30.0f }},
+	{WALL, { 0.0f, 2.5f, -30.0f }}, {WALL, { 0.0f, 5.5f, -30.0f }},
 
-
-
-
-	{WALL, { 0.0f, 0.5f, 40.0f }}, 
-	{WALL, { 0.0f, 1.5f, 43.0f }}, 
-	{WALL, { 0.0f, 2.0f, 47.0f }}, 
-	{WALL, { -2.0f, 2.5f, 50.0f }},
-	{WALL, { 2.0f, 3.0f, 53.0f }}, 
-
-	{BALL, { 0.0f, 1.0f, 5.0f }},
-	{BALL, { -2.0f, 1.0f, 5.0f }},
-	{BALL, { 2.0f, 1.0f, 5.0f }},
-
-	{WALL, { 50.0f, 0.5f, 50.0f }}, {WALL, { -50.0f, 0.5f, 50.0f }},
-	{WALL, { 50.0f, 0.5f, -50.0f }}, {WALL, { -50.0f, 0.5f, -50.0f }},
+	{WALL, { 0.0f, 0.0f, 20.0f }, { XMConvertToRadians(30.0f), 0.0f, 0.0f }}
 };
 
 void Map_System_Initialize()
@@ -107,7 +91,6 @@ void Map_System_Update(double elapsed_time)
 	Light_Manager::GetInstance().Set_Point_Light(0, playerPos, 3.0f, { 1.0f, 0.5f, 0.0f, 1.0f });
 
 	// --- Update Global Light ---
-	Light_Manager::GetInstance().Global_Light_Set_Up();
 	Light_Manager::GetInstance().Global_Light_Update(elapsed_time);
 }
 

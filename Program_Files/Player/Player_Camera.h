@@ -22,6 +22,9 @@ void Player_Camera_Finalize();
 
 void Player_Camera_Update(double elapsed_time);
 
+void Player_Camera_Set_Menu_Mode(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& target);
+void Player_Camera_Set_Game_Mode();
+
 const DirectX::XMFLOAT3& Player_Camera_Get_POS();
 const DirectX::XMFLOAT3& Player_Camera_Get_Front();
 
@@ -31,6 +34,7 @@ float Get_Mouse_Sensitivity();
 const DirectX::XMFLOAT3& Player_Camera_Get_Current_POS();
 float Player_Camera_Get_Yaw();
 float Player_Camera_Get_Pitch();
+float Player_Camera_Get_Far_Z();
 
 Player_Sights Player_Camera_Get_Now_Sights();
 void Player_Camera_Set_Sights(Player_Sights sight);

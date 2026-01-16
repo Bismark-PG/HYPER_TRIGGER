@@ -51,6 +51,11 @@ private:
     ~Billboard_Manager() = default;
 
     std::vector<Billboard_Object*> m_ObjList;
+
+    static constexpr int MAX_EFFECT_POOL = 200;
+    std::vector<class Billboard_Effect*> m_EffectPool;
+
+    int m_ExplosionPatternID = -1;
 };
 
 #endif // BILLBOARD_MANAGER_H

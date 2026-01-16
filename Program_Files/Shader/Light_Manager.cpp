@@ -38,7 +38,7 @@ void Light_Manager::Init()
     m_PointLightCount = 0;
 }
 
-void Light_Manager::Global_Light_Set_Up()
+void Light_Manager::Global_Light_Set_Up() const
 {
     if (!Shader_Manager::GetInstance()) return;
 

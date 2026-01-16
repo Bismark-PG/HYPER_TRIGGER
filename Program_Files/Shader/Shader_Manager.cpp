@@ -301,12 +301,15 @@ void Shader_Manager::Begin3D_For_Field(Shader_Filter Filter)
 
     // --- PS Buffers (b1, b2, b3) ---
     ID3D11Buffer* psCbs[] = {
-        m_cbAmbient3D.Get(),     // b1
-        m_cbDirectional3D.Get(), // b2
-        m_cbSpecular3D.Get()     // b3
+        m_cbDiffuseColorPS.Get(), // b0: Diffuse Color
+        m_cbAmbient3D.Get(),      // b1
+        m_cbDirectional3D.Get(),  // b2
+        m_cbSpecular3D.Get()      // b3
     };
-    m_context->PSSetConstantBuffers(3, 3, psCbs); // b3, b4, b5
+    m_context->PSSetConstantBuffers(0, 4, psCbs); // b1, b2, b3
 
+    ID3D11Buffer* nullCB = nullptr;
+    m_context->PSSetConstantBuffers(4, 1, &nullCB);
 
     switch (Filter)
     {
@@ -322,6 +325,8 @@ void Shader_Manager::Begin3D_For_Field(Shader_Filter Filter)
         m_context->PSSetSamplers(0, 1, m_sampler_AnisoTropic.GetAddressOf());
         break;
     }
+
+    SetAlphaBlend(false);
 }
 
 void Shader_Manager::SetWorldMatrix3D(const XMMATRIX& matrix)

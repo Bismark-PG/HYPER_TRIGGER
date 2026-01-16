@@ -11,6 +11,7 @@
 #include "Player_Camera.h"
 #include <Player.h>
 #include <Light_Manager.h>
+#include <direct3d.h>
 
 using namespace DirectX;
 
@@ -38,7 +39,6 @@ void Sky_Draw()
 
 	// Unlighting for Skybox
     Shader_Manager::GetInstance()->SetLightAmbient({ 1.0f, 1.0f, 1.0f, 1.0f });
-
     Shader_Manager::GetInstance()->SetLightDirectional({ 0, -1, 0, 0 }, { 0, 0, 0, 0 });
 
 	// World Matrix
@@ -48,8 +48,7 @@ void Sky_Draw()
     XMMATRIX mtxWorld = mtxScale * mtxRot * mtxTrans;
 
 	// Draw Sky Model
+    Direct3D_SetDepthEnable(false);
     ModelDraw(g_pModelSky, mtxWorld);
-
-	// Restore Lighting
-    Light_Manager::GetInstance().Global_Light_Set_Up();
+    Direct3D_SetDepthEnable(true);
 }

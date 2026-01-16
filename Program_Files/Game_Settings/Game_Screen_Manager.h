@@ -31,6 +31,8 @@ enum class Game_Select_Screen
     G_WAIT,
     GAME_MENU_SELECT,
     GAME_PLAYING,
+    GAME_IN_GAME_MENU,
+    GAME_SETTING,
     G_DONE
 };
 
@@ -53,6 +55,8 @@ public:
     void Update_Game_Select_Screen(Game_Select_Screen Game_Select_Input);
     Game_Select_Screen Get_Current_Game_Select_Screen() const;
 
+    void Apply_Screen_Changes();
+
 private:
     Game_Manager() = default;
     ~Game_Manager() = default;
@@ -60,5 +64,9 @@ private:
     Main_Screen Current_Main_Screen = Main_Screen::M_WAIT;
     Sub_Screen Current_Sub_Screen = Sub_Screen::S_WAIT;
     Game_Select_Screen Current_Game_Screen = Game_Select_Screen::G_WAIT;
+
+    Main_Screen Next_Main_Screen = Main_Screen::M_WAIT;
+    Sub_Screen Next_Sub_Screen = Sub_Screen::S_WAIT;
+    Game_Select_Screen Next_Game_Screen = Game_Select_Screen::G_WAIT;
 };
 #endif // GAME_SCREEN_MANAGER_H

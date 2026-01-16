@@ -12,40 +12,55 @@
 #include "Game_Screen_Manager.h"
 #include "Shader_Manager.h"
 #include "Sky.h"
-#include "mouse.h"           
 #include "Texture_Manager.h"
 #include "KeyLogger.h"
+#include "Player_Camera.h"
 #include "Controller_Input.h"
+#include "Light_Manager.h"
+#include "BGM_Mixer.h"
+using namespace DirectX;
 
-int Mouse_UI = -1;
-int UI_Start = -1;
-int UI_Set = -1;
-int UI_Exit = -1;
+//----------------UI Texture----------------//
+static int Main_BG = -1;
+static int Main_Title = -1;
+static int UI_Start = -1;
+static int UI_Set = -1;
+static int UI_Exit = -1;
 
-Main_Select_Buffer M_Buffer;
+//----------------------POS----------------------/
+static float BG_W, BG_H;
+static float Title_X, Title_Y, Title_W, Title_H;
 
+static float UI_X;
+static float Start_Y;
+static float Settings_Y;
+static float Exit_Y;
+
+static float UI_Width;
+static float UI_Height;
+
+//----------------State & Data----------------//
+// State Info
+Main_Select_Buffer M_Buffer = Main_Select_Buffer::None;
+
+// Sound Scale Info
 static float Current_Volume = 0.0f;
 static double BGM_Fade_Timer = 0.0;
 constexpr double BGM_FADE_TIME = 3.0;
 bool Is_BGM_Playing;
 bool Is_BGM_Fading_In;
 
-float UI_X		 = -1;
-float Start_Y	 = -1;
-float Settings_Y = -1;
-float Exit_Y	 = -1;
-float UI_Width	 = -1;
-float UI_Height	 = -1;
-
-static float Cursor_X = 0.0f;
-static float Cursor_Y = 0.0f;
-static float Cursor_Size = 0.0f;
+// Mouse Info
+Mouse_Info Mouse_Menu;
 static bool Is_Mouse_Left_Clicked_Prev = false;
 
+// Fade Info
 static bool EXIT_STATE = false;
 static constexpr double FADE_OUT_TIME = 2.0;
 static double Fade_Out_Timer = 0.0;
 
+// Bool Info
+static bool Menu_Selected = false;
 static bool Controller_Alert = false;
 static bool Wait_For_Release = false;
 
@@ -54,22 +69,32 @@ void Main_Menu_Initialize()
 	Main_Menu_Texture();
 	Mouse_SetVisible(false);
 
-	float Screen_W = static_cast<float>(Direct3D_GetBackBufferWidth());
-	float Screen_H = static_cast<float>(Direct3D_GetBackBufferHeight());
+	BG_W = static_cast<float>(Direct3D_GetBackBufferWidth());
+	BG_H = static_cast<float>(Direct3D_GetBackBufferHeight());
 
-	Cursor_Size = Screen_H * 0.025f;
+	Title_W = BG_W * 0.3f;
+	Title_H = BG_H * 0.3f;
+	Title_X = (BG_W * 0.9f) - Title_W;
+	Title_Y = BG_H * 0.15f;
 
-	UI_Width	= Screen_W * 0.15f;
-	UI_Height	= Screen_H * 0.05f;
-	UI_X		= Screen_W * 0.15f - UI_Width * 0.5f;
-	Start_Y		= Screen_H * 0.6f - Start_Y * 0.5f;
-	Settings_Y	= Screen_H * 0.7f - Settings_Y * 0.5f;
-	Exit_Y		= Screen_H * 0.8f - Exit_Y * 0.5f;
+	Mouse_Menu.Size = BG_H * 0.05f;
+	Mouse_Menu.Prev_X = BG_W * 0.5f;
+	Mouse_Menu.Prev_Y = BG_H * 0.5f;
 
-	M_Buffer = Main_Select_Buffer::None;
+	UI_Width	= BG_W * 0.175f;
+	UI_Height	= BG_H * 0.075f;
+	UI_X		= BG_W * 0.2f - UI_Width * 0.5f;
+
+	Start_Y		= BG_H * 0.55f - UI_Height * 0.5f;
+	Settings_Y	= BG_H * 0.7f  - UI_Height * 0.5f;
+	Exit_Y		= BG_H * 0.85f - UI_Height * 0.5f;
+
+	Set_Main_Menu_Buffer(Main_Select_Buffer::None);
 
 	Is_BGM_Playing = false;
 	Is_BGM_Fading_In = false;
+
+	Main_Menu_BG_Camera_Set();
 }
 
 void Main_Menu_Finalize()
@@ -78,6 +103,7 @@ void Main_Menu_Finalize()
 
 void Main_Menu_Update(double elapsed_time)
 {
+	Main_Menu_BG_Updater(elapsed_time);
 	float dt = static_cast<float>(elapsed_time);
 
 	bool Controller_Alert_Now = Controller_Set_UP();
@@ -98,177 +124,176 @@ void Main_Menu_Update(double elapsed_time)
 
 	Controller_Alert = false;
 
-	if (!Is_BGM_Playing && Game_Manager::GetInstance()->Get_Current_Main_Screen() == Main_Screen::MENU_SELECT)
+	Mixer_First_Game_Start(elapsed_time);
+
+	Mouse_State State = Mouse_Get_Prev_State(Mouse_Menu);
+	bool Mouse_Movement = Is_Mouse_Moved();
+
+	bool Is_Mouse_Click = (State.leftButton);
+
+	if (Mouse_Movement)
 	{
-		if (Fade_GetState() == FADE_STATE::FINISHED_IN)
+		if (Is_Mouse_In_RECT(Mouse_Menu.X, Mouse_Menu.Y, UI_X, Start_Y, UI_Width, UI_Height))
 		{
-			Debug::D_Out << "[Title] Main Title Draw" << std::endl;
-
-			Audio_Manager::GetInstance()->Play_BGM("Title", true);
-			Audio_Manager::GetInstance()->Update_Current_BGM_Volume(0.0f);
-
-			Is_BGM_Playing = true;
-			Is_BGM_Fading_In = true;
-			BGM_Fade_Timer = 0.0;
+			if (Get_Main_Menu_Buffer() != Main_Select_Buffer::Start)
+			{
+				Set_Main_Menu_Buffer(Main_Select_Buffer::Start);
+				Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+			}
+		}
+		else if (Is_Mouse_In_RECT(Mouse_Menu.X, Mouse_Menu.Y, UI_X, Settings_Y, UI_Width, UI_Height))
+		{
+			if (Get_Main_Menu_Buffer() != Main_Select_Buffer::Setting)
+			{
+				Set_Main_Menu_Buffer(Main_Select_Buffer::Setting);
+				Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+			}
+		}
+		else if (Is_Mouse_In_RECT(Mouse_Menu.X, Mouse_Menu.Y, UI_X, Exit_Y, UI_Width, UI_Height))
+		{
+			if (Get_Main_Menu_Buffer() != Main_Select_Buffer::Exit)
+			{
+				Set_Main_Menu_Buffer(Main_Select_Buffer::Exit);
+				Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+			}
+		}
+		else
+		{
+			Set_Main_Menu_Buffer(Main_Select_Buffer::Wait);
 		}
 	}
 
-	if (Is_BGM_Fading_In && BGM_Fade_Timer < BGM_FADE_TIME)
+	if (KeyLogger_IsTrigger(KK_W) || KeyLogger_IsTrigger(KK_UP) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_UP))
 	{
-		BGM_Fade_Timer += dt;
-		float Target_Volume = Audio_Manager::GetInstance()->Get_Target_BGM_Volume();
-		Current_Volume = Target_Volume * static_cast<float>(BGM_Fade_Timer / BGM_FADE_TIME);
-
-		if (Current_Volume > Target_Volume)
-		{
-			Current_Volume = Target_Volume;
-			Is_BGM_Fading_In = false;
-		}
-
-		Audio_Manager::GetInstance()->Update_Current_BGM_Volume(Current_Volume);
-	}
-
-	Mouse_State mState;
-	Mouse_GetState(&mState);
-
-	Cursor_X = (float)mState.x;
-	Cursor_Y = (float)mState.y;
-
-	bool Is_Clicked = mState.leftButton && !Is_Mouse_Left_Clicked_Prev;
-	Is_Mouse_Left_Clicked_Prev = mState.leftButton;
-
-	if (Is_Mouse_In_RECT(Cursor_X, Cursor_Y, UI_X, Start_Y, UI_Width, UI_Height))
-	{
-		Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-		Set_Main_Menu_Buffer(Main_Select_Buffer::Start);
-		if (Is_Clicked)
-		{
-			Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
-			Game_Manager::GetInstance()->Update_Main_Screen(Main_Screen::SELECT_GAME);
-		}
-	}
-	else if (Is_Mouse_In_RECT(Cursor_X, Cursor_Y, UI_X, Settings_Y, UI_Width, UI_Height))
-	{
-		Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-		Set_Main_Menu_Buffer(Main_Select_Buffer::Setting);
-		if (Is_Clicked)
-		{
-			Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
-			Game_Manager::GetInstance()->Update_Main_Screen(Main_Screen::SELECT_SETTINGS);
-		}
-	}
-	else if (Is_Mouse_In_RECT(Cursor_X, Cursor_Y, UI_X, Exit_Y, UI_Width, UI_Height))
-	{
-		Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-		Set_Main_Menu_Buffer(Main_Select_Buffer::Exit);
-		if (Is_Clicked)
-		{
-			Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
-			Game_Manager::GetInstance()->Update_Main_Screen(Main_Screen::EXIT);
-		}
-	}
-
-	switch (M_Buffer)
-	{
-	case Main_Select_Buffer::None:
-		if (KeyLogger_IsTrigger(KK_W) || KeyLogger_IsTrigger(KK_UP) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_UP))
-		{
-			Set_Main_Menu_Buffer(Main_Select_Buffer::Exit);
-			Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-		}
-		else if (KeyLogger_IsTrigger(KK_S) || KeyLogger_IsTrigger(KK_DOWN) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_DOWN))
+		if (Get_Main_Menu_Buffer() == Main_Select_Buffer::None || Get_Main_Menu_Buffer() == Main_Select_Buffer::Wait)
 		{
 			Set_Main_Menu_Buffer(Main_Select_Buffer::Start);
 			Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
 		}
-		break;
-
-	case Main_Select_Buffer::Start:
-		if (KeyLogger_IsTrigger(KK_ENTER) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_A))
+		else
 		{
-			Set_Main_Menu_Buffer(Main_Select_Buffer::Done);
-			Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
+			if (Get_Main_Menu_Buffer() == Main_Select_Buffer::Setting)
+			{
+				Set_Main_Menu_Buffer(Main_Select_Buffer::Start);
+				Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+			}
+			else if (Get_Main_Menu_Buffer() == Main_Select_Buffer::Exit)
+			{
+				Set_Main_Menu_Buffer(Main_Select_Buffer::Setting);
+				Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+			}
 		}
-
-		if (KeyLogger_IsTrigger(KK_S) || KeyLogger_IsTrigger(KK_DOWN) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_DOWN))
-		{
-			Set_Main_Menu_Buffer(Main_Select_Buffer::Setting);
-			Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-		}
-		break;
-
-	case Main_Select_Buffer::Setting:
-		if (KeyLogger_IsTrigger(KK_ENTER) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_A))
-		{
-			Set_Main_Menu_Buffer(Main_Select_Buffer::Done);
-			Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
-		}
-
-		if (KeyLogger_IsTrigger(KK_W) || KeyLogger_IsTrigger(KK_UP) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_UP))
+	}
+	else if (KeyLogger_IsTrigger(KK_S) || KeyLogger_IsTrigger(KK_DOWN) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_DOWN))
+	{
+		if (Get_Main_Menu_Buffer() == Main_Select_Buffer::None || Get_Main_Menu_Buffer() == Main_Select_Buffer::Wait)
 		{
 			Set_Main_Menu_Buffer(Main_Select_Buffer::Start);
 			Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
 		}
-		else if (KeyLogger_IsTrigger(KK_S) || KeyLogger_IsTrigger(KK_DOWN) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_DOWN))
+		else
 		{
-			Set_Main_Menu_Buffer(Main_Select_Buffer::Exit);
-			Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+			if (Get_Main_Menu_Buffer() == Main_Select_Buffer::Start)
+			{
+				Set_Main_Menu_Buffer(Main_Select_Buffer::Setting);
+				Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+			}
+			else if (Get_Main_Menu_Buffer() == Main_Select_Buffer::Setting)
+			{
+				Set_Main_Menu_Buffer(Main_Select_Buffer::Exit);
+				Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+			}
 		}
-		break;
+	}
 
-	case Main_Select_Buffer::Exit:
-		if (KeyLogger_IsTrigger(KK_ENTER) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_A))
+	bool Confirm_Input = (KeyLogger_IsTrigger(KK_ENTER) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_A));
+
+	if (State.leftButton && !Is_Mouse_Left_Clicked_Prev)
+	{
+		if (Get_Main_Menu_Buffer() == Main_Select_Buffer::Start ||
+			Get_Main_Menu_Buffer() == Main_Select_Buffer::Setting ||
+			Get_Main_Menu_Buffer() == Main_Select_Buffer::Exit)
 		{
-			Set_Main_Menu_Buffer(Main_Select_Buffer::Done);
-			Fade_Start(FADE_OUT_TIME, true);
-			EXIT_STATE = true;
-			Fade_Out_Timer = 0.0;
+			Confirm_Input = true;
+		}
+	}
+	Is_Mouse_Left_Clicked_Prev = State.leftButton;
 
+	if (Confirm_Input)
+	{
+		if (Get_Main_Menu_Buffer() != Main_Select_Buffer::None && Get_Main_Menu_Buffer() != Main_Select_Buffer::Wait)
+		{
 			Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
-		}
 
-		if (KeyLogger_IsTrigger(KK_W) || KeyLogger_IsTrigger(KK_UP) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_UP))
-		{
-			Set_Main_Menu_Buffer(Main_Select_Buffer::Setting);
-			Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-		}
-		break;
+			switch (Get_Main_Menu_Buffer())
+			{
+			case Main_Select_Buffer::Start:
+				Game_Manager::GetInstance()->Update_Main_Screen(Main_Screen::SELECT_GAME);
+				Game_Manager::GetInstance()->Update_Game_Select_Screen(Game_Select_Screen::GAME_MENU_SELECT);
+				Set_Main_Menu_Buffer(Main_Select_Buffer::None);
+				break;
 
-	case Main_Select_Buffer::Done:
-		break;
+			case Main_Select_Buffer::Setting:
+				Game_Manager::GetInstance()->Update_Main_Screen(Main_Screen::SELECT_SETTINGS);
+				Game_Manager::GetInstance()->Update_Sub_Screen(Sub_Screen::SETTINGS);
+				Set_Main_Menu_Buffer(Main_Select_Buffer::None);
+				break;
+
+			case Main_Select_Buffer::Exit:
+				Game_Manager::GetInstance()->Update_Main_Screen(Main_Screen::EXIT);
+				Set_Main_Menu_Buffer(Main_Select_Buffer::Done);
+				Fade_Start(FADE_OUT_TIME, true);
+				EXIT_STATE = true;
+				Fade_Out_Timer = 0.0;
+				break;
+			}
+		}
 	}
 }
 
 void Main_Menu_Draw()
 {
-	// Game Demo Draw
-	Direct3D_SetDepthEnable(true);
-	Shader_Manager::GetInstance()->Begin3D();
+	Main_Menu_BG_Draw();
+	Main_Menu_UI_Draw();
+}
 
-	// UI
+void Main_Menu_BG_Draw()
+{
+	Sprite_Draw(Main_BG, A_Zero, A_Zero, BG_W, BG_H);
+	Sprite_Draw(Main_Title, Title_X, Title_Y, Title_W, Title_H);
+
+	/*
+	Shader_Manager::GetInstance()->Begin3D();
+	Light_Manager::GetInstance().Global_Light_Set_Up();
+	
+	Sky_Draw();                    
+
+	XMMATRIX mtxIdentity = XMMatrixIdentity();
+	Shader_Manager::GetInstance()->SetWorldMatrix3D(mtxIdentity);
+
+	Map_System_Draw();
+	*/
+}
+
+void Main_Menu_UI_Draw()
+{
 	Direct3D_SetDepthEnable(false);
 	Shader_Manager::GetInstance()->Begin2D();
 
-	if (M_Buffer == Main_Select_Buffer::Start)
-		Sprite_Draw(UI_Start, UI_X, Start_Y, UI_Width, UI_Height);
-	else
-		Sprite_Draw(UI_Start, UI_X, Start_Y, UI_Width, UI_Height, A_Zero, { A_Origin, A_Origin, A_Origin, A_Half });
+	XMFLOAT4 A_Origin = Alpha_Origin;
+	XMFLOAT4 A_Half = Alpha_Half;
 
-	if (M_Buffer == Main_Select_Buffer::Setting)
-		Sprite_Draw(UI_Set, UI_X, Settings_Y, UI_Width, UI_Height);
-	else
-		Sprite_Draw(UI_Set, UI_X, Settings_Y, UI_Width, UI_Height, A_Zero, { A_Origin, A_Origin, A_Origin, A_Half });
+	Sprite_Draw(UI_Start, UI_X, Start_Y, UI_Width, UI_Height, A_Zero,
+		(M_Buffer == Main_Select_Buffer::Start) ? A_Origin : A_Half);
 
-	if (M_Buffer == Main_Select_Buffer::Exit)
-		Sprite_Draw(UI_Exit, UI_X, Exit_Y, UI_Width, UI_Height);
-	else
-		Sprite_Draw(UI_Exit, UI_X, Exit_Y, UI_Width, UI_Height, A_Zero, { A_Origin, A_Origin, A_Origin, A_Half });
+	Sprite_Draw(UI_Set, UI_X, Settings_Y, UI_Width, UI_Height, A_Zero,
+		(M_Buffer == Main_Select_Buffer::Setting) ? A_Origin : A_Half);
 
-	// Mouse
-	Sprite_Draw(Mouse_UI, Cursor_X, Cursor_Y, Cursor_Size, Cursor_Size);
+	Sprite_Draw(UI_Exit, UI_X, Exit_Y, UI_Width, UI_Height, A_Zero,
+		(M_Buffer == Main_Select_Buffer::Exit) ? A_Origin : A_Half);
 }
 
-Main_Select_Buffer Get_Main_Menu_Buffet()
+Main_Select_Buffer Get_Main_Menu_Buffer()
 {
 	return M_Buffer;
 }
@@ -278,26 +303,41 @@ void Set_Main_Menu_Buffer(Main_Select_Buffer Buffer)
 	M_Buffer = Buffer;
 }
 
-bool Is_Mouse_In_RECT(float mx, float my, float bx, float by, float bw, float bh)
-{
-	return (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh);
-}
-
 bool IF_IS_Game_Done()
 {
 	return EXIT_STATE;
 }
 
+Mouse_Info Get_Main_Menu_Mouse_POS()
+{
+	return Mouse_Menu;
+}
+
+void Main_Menu_BG_Camera_Set()
+{
+	XMFLOAT3 CamPos = { -15.0f, 8.0f, -15.0f };
+	XMFLOAT3 CamTarget = { 0.0f, 2.0f, 20.0f };
+	Player_Camera_Set_Menu_Mode(CamPos, CamTarget);
+}
+
+void Main_Menu_BG_Updater(double elapsed_time)
+{
+	Player_Camera_Update(elapsed_time);
+	Sky_Update();
+	Map_System_Update(elapsed_time);
+}
+
 void Main_Menu_Texture()
 {
-	//---------------Intro Logo Texture---------------//
-	Mouse_UI = Texture_Manager::GetInstance()->GetID("K");
+	//---------------Main Menu Texture---------------//
+	Main_BG  = Texture_Manager::GetInstance()->GetID("BG_Menu");
+	Main_Title  = Texture_Manager::GetInstance()->GetID("BG_Title");
 
 	UI_Start = Texture_Manager::GetInstance()->GetID("Start");
 	UI_Set	 = Texture_Manager::GetInstance()->GetID("Settings");
 	UI_Exit  = Texture_Manager::GetInstance()->GetID("Exit");
 
-	if (Mouse_UI == -1 || UI_Start == -1 || UI_Set == -1 || UI_Exit == -1)
+	if (UI_Start == -1 || UI_Set == -1 || UI_Exit == -1)
 	{
 		Debug::D_Out << "[Main Menu] Texture Init Error" << std::endl;
 	}
