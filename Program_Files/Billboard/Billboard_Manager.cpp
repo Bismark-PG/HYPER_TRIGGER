@@ -6,9 +6,7 @@
 
 ==============================================================================*/
 #include "Billboard_Manager.h"
-#include "Billboard_Object.h"
-#include "Billboard_Target.h"
-#include "Billboard_Effect.h"
+
 #include "Texture_Manager.h"
 #include <debug_ostream.h>
 using namespace DirectX;
@@ -122,6 +120,68 @@ void Billboard_Manager::Create(const XMFLOAT3& pos, Billboard_Type Type)
         m_ObjList.push_back(New_O);
         break;
     }
+    }
+}
+
+void Billboard_Manager::Create_Weapon(const DirectX::XMFLOAT3& pos, WeaponType wType, Billboard_Object** outIcon, Billboard_Object** outBG)
+{
+    std::string Tex_Name = "";
+    float Scale = 2.0f;
+
+    switch (wType)
+    {
+    case WeaponType::HANDGUN:      
+        Tex_Name = "UI_HG";
+        break;
+
+    case WeaponType::ASSAULT_RIFLE: 
+        Tex_Name = "UI_AR";
+        break;
+
+    case WeaponType::MACHINE_GUN:  
+        Tex_Name = "UI_MG";
+        break;
+
+    case WeaponType::GRENADE:     
+        Tex_Name = "UI_Grenade";
+        break;
+
+    default: 
+        return;
+    }
+
+    int BG_ID     = Texture_Manager::GetInstance()->GetID("UI_Weapon_Drop_Box");
+    int Weapon_ID = Texture_Manager::GetInstance()->GetID(Tex_Name);
+
+    if (BG_ID == -1 || Weapon_ID == -1)
+    {
+        Debug::D_Out << "[Billboard] Weapon Box Texture Not Found : " << Tex_Name << std::endl;
+        return;
+    }
+
+    DirectX::XMFLOAT3 Spawn_Pos = pos;
+    Spawn_Pos.y += 3.0f; // Over The Box
+
+    // Icon BG
+    Billboard_Object* BG_Icon = new Billboard_Object(BG_ID, Spawn_Pos, Scale, Scale);
+    BG_Icon->Activate(Spawn_Pos);
+    BG_Icon->SetLifeTime(15.0f);
+    m_ObjList.push_back(BG_Icon);
+
+    // Weapon Icon
+    Billboard_Object* Weapon_Icon = new Billboard_Object(Weapon_ID, Spawn_Pos, Scale, Scale);
+    Weapon_Icon->Activate(Spawn_Pos);
+    Weapon_Icon->SetLifeTime(15.0f);
+    m_ObjList.push_back(Weapon_Icon);
+
+    // Send Billboard Pointer
+    if (outBG)  
+    {
+        *outBG = BG_Icon;
+    }
+    if (outIcon) 
+    {
+        *outIcon = Weapon_Icon;
     }
 }
 

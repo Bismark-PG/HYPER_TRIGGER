@@ -23,23 +23,26 @@
 #include "Game_Screen_Manager.h" 
 #include "BGM_Mixer.h"
 #include "Audio_Manager.h"
+#include "Billboard_Manager.h"
 using namespace DirectX;
 using namespace PALETTE;
 
-constexpr float Player_drag = 5.0f;
+// Player Physics Constants
+constexpr float PLAYER_SCALE = 0.01f;
+constexpr float PLAYER_DRAG = 5.0f;
 
 static XMFLOAT3 Player_Pos	 = {};
 static XMFLOAT3 Player_Start_POS = {};
 static XMFLOAT3 Player_Front = { 0.0f, 0.0f, 1.0f };
 static XMFLOAT3 Player_Vel	 = {};
 static XMVECTOR Player_Speed = {};
-static float Player_Height_Offset = 0.0f;
 
 static XMVECTOR Gravity		= { 0.0f, -15.0f, 0.0f };
 static XMVECTOR Walk_Speed	= { 35.f, 0.0, 35.f };
 static XMVECTOR Run_Speed	= { 75.f, 0.0, 75.f };
 
 static MODEL* Player_Model{nullptr};
+static bool Is_Input_Moving = false;
 static bool Is_Jump = false;
 static bool Is_Run = false;
 static bool Is_Run_Toggle = false;
@@ -48,7 +51,7 @@ static bool Is_Run_Toggle = false;
 static const int Player_Base_MaxHP = 100;
 static int Player_HP = 100;
 static int Player_MaxHP = 100;
-static float Player_Damage_Coeff = 1.0f;
+static float Player_Damage = 1.0f;
 
 static bool Player_Is_Dead = false;
 static bool Is_Game_Over_Sequence = false;
@@ -59,10 +62,19 @@ constexpr float INVINCIBLE_DURATION = 1.0f;
 
 static float Walk_Timer = 0.0f;
 
+// Level Bonus Ratios
+static float Bonus_Damage_Ratio = 0.0f;
+static float Bonus_Speed_Ratio = 0.0f;
+static float Bonus_HP_Ratio = 0.0f;
+constexpr float Bonus_HP_Heal = 0.1f;
+
+static E_PlayerState Current_State = E_PlayerState::IDLE;
+
 // static Player Update Logic
+static XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat_Right);;
 static void Player_Update_Teleport_System();
-static XMVECTOR Player_Update_AABB_System(XMVECTOR Velocity);
 static void Player_Update_Respawn_System(XMVECTOR Velocity);
+static XMVECTOR Player_Update_AABB_System(XMVECTOR Velocity);
 
 // If Input Model, Can Change Chara
 void Player_Initialize(const XMFLOAT3& First_POS, const XMFLOAT3& First_Front)
@@ -80,7 +92,7 @@ void Player_Initialize(const XMFLOAT3& First_POS, const XMFLOAT3& First_Front)
 
 	Player_HP = Player_Base_MaxHP;
 	Player_MaxHP = Player_Base_MaxHP;
-	Player_Damage_Coeff = 1.0f;
+	Player_Damage = 1.0f;
 
 	Player_Is_Dead = false;
 	Is_Game_Over_Sequence = false;
@@ -143,9 +155,13 @@ void Player_Update(double elapsed_time)
 	}
 
 	if (Is_Run)
-		Player_Speed = Run_Speed;
+	{
+		Player_Speed = Run_Speed  * (1.0f + Bonus_Speed_Ratio);
+	}
 	else
-		Player_Speed = Walk_Speed;
+	{
+		Player_Speed = Walk_Speed * (1.0f + Bonus_Speed_Ratio);
+	}
 
 	if (elapsed_time > 0.05)
 	{
@@ -171,37 +187,42 @@ void Player_Update(double elapsed_time)
 	XMVECTOR Front = XMLoadFloat3(&Player_Camera_Get_Front());
 	XMVECTOR Flat_Front = XMVector3Normalize(XMVectorSetY(Front, 0.0f));
 	XMVECTOR Flat_Right = XMVector3Cross({ 0.0f,1.0f,0.0f }, Flat_Front);
+	Is_Input_Moving = false;
 
-	bool Is_Input_Moving = false;
-
-	if (KeyLogger_IsPressed(KK_W)) Dir += Flat_Front;
-	if (KeyLogger_IsPressed(KK_S)) Dir -= Flat_Front;
-	if (KeyLogger_IsPressed(KK_D)) Dir += Flat_Right;
-	if (KeyLogger_IsPressed(KK_A)) Dir -= Flat_Right;
-
+	Dir = Player_Update_Is_Moved(Dir, Flat_Front, Flat_Right);
 	Dir = XMVector3Normalize(Dir);
 
 	Vel += Dir * Player_Speed * dt;
-	
-	if (Is_Input_Moving && !Is_Jump)
+	// =====================================================================
+	// Model Swap Logic
+	// Jump > Walk > Idle
+	// =====================================================================
+	if (Is_Jump)
 	{
+		Model_Play_Animation(Player_Model, "Jump");
+		//Audio_Manager::GetInstance()->Play_SFX("Player_Jump"); << Jump Sound
+	}
+	else if (Is_Input_Moving)
+	{
+		Model_Play_Animation(Player_Model, "F_Move");
+
 		Walk_Timer += dt;
-
-		if (Walk_Timer >= 1.0f)
+		if (Walk_Timer >= 0.5f)
 		{
-			Audio_Manager::GetInstance()->Play_SFX("Player_Walk");
-
+			Model_Play_Animation(Player_Model, "Idle");
 			Walk_Timer = 0.0f;
 		}
 	}
 	else
 	{
 		Walk_Timer = 0.0f;
+		Model_Play_Animation(Player_Model, "Idle");
 	}
+
 
 	// Friction
 	XMVECTOR Horizontal_Vel = XMVectorMultiply(Vel, XMVectorSet(1.0f, 0.0f, 1.0f, 0.0f));
-	Horizontal_Vel -= Horizontal_Vel * Player_drag * dt;
+	Horizontal_Vel -= Horizontal_Vel * PLAYER_DRAG * dt;
 	Vel = XMVectorMultiply(Vel, XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f)) + Horizontal_Vel;
 
 	// Apply Velocity
@@ -214,28 +235,75 @@ void Player_Update(double elapsed_time)
 	Player_Update_Teleport_System();
 
 	// --- 4. Weapon System ---
+	// Reload Input
+	if (KeyLogger_IsTrigger(KK_R))
+	{
+		Weapon_System::GetInstance().Reload();
+	}
+
+	// Item Pickup Input
+	if (KeyLogger_IsTrigger(KK_E))
+	{
+		// Get Player Eye POS & Dir
+		XMFLOAT3 pEyePos = Player_Camera_Get_Current_POS();// Player Eye Position
+		XMFLOAT3 pDir = Player_Camera_Get_Front(); // Player Camera Front Direction
+
+		// Set Request Item (Nearest Weapon In View)
+		ResourceItem* item = Resource_Manager::GetInstance().Get_Nearest_Weapon_In_View(pEyePos, pDir, 5.0f); // Distance 3.0f
+
+		if (item != nullptr)
+		{
+			// Get Weapon
+			if (Weapon_System::GetInstance().AddWeapon(item->W_Type))
+			{
+				// If Success, Deactivate Item
+				item->Active = false;
+
+				// Deactivate Billboard Too
+				if (item->Linked_Icon)
+				{
+					item->Linked_Icon->Deactivate();
+				}
+				if (item->Linked_BG) 
+				{
+					item->Linked_BG->Deactivate();
+				}
+			}
+			else
+			{
+				// If Fail (Weapon Full), Play Error Sound
+				Audio_Manager::GetInstance()->Play_SFX("System_Error");
+			}
+		}
+	}
+
 	Weapon_System::GetInstance().Update(elapsed_time);
 
 	// Shooting Logic
 	bool TryFire = false;
-	const WeaponInfo& currentWeapon = Weapon_System::GetInstance().GetCurrentWeaponInfo();
 
-	// Mouse Left Button Check
-	if (currentWeapon.IsAutomatic)
+	// Mouse Left Button Check And Automatic Check
+	if (Weapon_System::GetInstance().HasWeapon())
 	{
-		if (KeyLogger_IsMousePressed(Mouse_Button::LEFT))
+		const auto& currentWeapon = Weapon_System::GetInstance().GetCurrentWeapon();
+
+		if (currentWeapon.Spec.IsAutomatic)
 		{
-			TryFire = true;
+			if (KeyLogger_IsMousePressed(Mouse_Button::LEFT))
+			{
+				TryFire = true;
+			}
+		}
+		else
+		{
+			if (KeyLogger_IsMouseTrigger(Mouse_Button::LEFT)) 
+			{
+				TryFire = true;
+			}
 		}
 	}
-	else
-	{
-		if (KeyLogger_IsMouseTrigger(Mouse_Button::LEFT))
-		{
-			TryFire = true;
-		}
-	}
 
+	// Check Fire
 	if (TryFire)
 	{
 		// Logical Fire POS
@@ -244,6 +312,15 @@ void Player_Update(double elapsed_time)
 
 		// Virtual Fire POS
 		XMFLOAT3 PlayerCenter = Player_Get_POS();
+
+		// Default Damage
+		int BaseDamage = Weapon_System::GetInstance().GetCurrentWeapon().Spec.Damage;
+
+		// Bonus Damage
+		float BonusDamage = Player_Get_Damage_Coefficient();
+
+		// Final Damage
+		int FinalDamage = static_cast<int>(BaseDamage * BonusDamage);
 
 		// In Now Hard-Coeding Logic, After Need Player Fire POS Logic.
 		XMVECTOR vP_Pos = XMLoadFloat3(&PlayerCenter);
@@ -255,13 +332,15 @@ void Player_Update(double elapsed_time)
 		XMStoreFloat3(&GunPos, vGunPos);
 
 		// Make Bullet, Fire!
-		Weapon_System::GetInstance().Fire(GunPos, CamPos, CamDir);
-		Audio_Manager::GetInstance()->Play_SFX("Player_Fire");
+		Weapon_System::GetInstance().Fire(GunPos, CamPos, CamDir, FinalDamage);
 	}
 
 	// Save Final Front & Vel
 	XMStoreFloat3(&Player_Front, Flat_Front);
 	XMStoreFloat3(&Player_Vel, Vel);
+
+	// Update Animation Time
+	Model_Update_Animation(Player_Model, dt);
 }
 
 void Player_Draw()
@@ -271,16 +350,20 @@ void Player_Draw()
 
 	Shader_Manager::GetInstance()->SetLightSpecular(Player_Camera_Get_POS(), 164.0f, { 1.0f, 1.0f, 1.0f, 1.0f });
 
+	// Set Player Model Scale
+	XMMATRIX S = XMMatrixScaling(PLAYER_SCALE, PLAYER_SCALE, PLAYER_SCALE);
+
 	// Get Movement
-	XMMATRIX t = XMMatrixTranslation(Player_Pos.x, Player_Pos.y + Player_Height_Offset, Player_Pos.z);
-	
+	XMMATRIX T = XMMatrixTranslation(Player_Pos.x, Player_Pos.y, Player_Pos.z);
+
 	// Get Yaw
-	float yaw = atan2f(Player_Front.x, Player_Front.z);
+	float Yaw = atan2f(Player_Front.x, Player_Front.z);
+	float Model_Yaw = Yaw + XM_PI;
+	XMMATRIX R = XMMatrixRotationY(Model_Yaw);
 
 	// Reverse Player
-	float modelYaw = yaw + XM_PI;
-	XMMATRIX r = XMMatrixRotationY(modelYaw);
-	XMMATRIX world = r * t;
+	// Scale >> Rotate >> Translate
+	XMMATRIX world = S * R * T;
 
 	ModelDraw(Player_Model, world);
 
@@ -300,12 +383,15 @@ void Player_Reset()
 	// 2. Resource Reset
 	Player_HP = Player_Base_MaxHP;
 	Player_MaxHP = Player_Base_MaxHP;
-	Player_Damage_Coeff = 1.0f;
+	Player_Damage = 1.0f;
 
 	Player_Is_Dead = false;
 	Is_Game_Over_Sequence = false;
 
-	// Resource_Manager::GetInstance().Reset(); 
+	// 3. Invincible Reset
+	Bonus_Damage_Ratio = 0.0f;
+	Bonus_Speed_Ratio = 0.0f;
+	Bonus_HP_Ratio = 0.0f;
 }
 
 void Player_Set_POS(XMFLOAT3& POS)
@@ -379,26 +465,71 @@ int Player_Get_MaxHP()
 
 void Player_LevelUp()
 {
-	// 1. Damage UP
-	Player_Damage_Coeff *= 1.25f;
-
-	// 2. MAX HP UP
-	int bonusMaxHP = static_cast<int>(Player_Base_MaxHP * 0.1f);
-	Player_MaxHP += bonusMaxHP;
-
-	// 3. Heal
-	int healAmount = static_cast<int>(Player_MaxHP * 0.1f);
+	// Heal
+	int healAmount = static_cast<int>(Player_Get_MaxHP() * Bonus_HP_Heal);
 	Player_Heal(healAmount);
 
 	Audio_Manager::GetInstance()->Play_SFX("Player_Level_UP");
+	// Particle_Manager::GetInstance().Spawn_LevelUp_Effect(Player_Get_POS()); << Need?
 }
 
 float Player_Get_Damage_Coefficient()
 {
-	return Player_Damage_Coeff;
+	return Player_Damage * (1.0f + Bonus_Damage_Ratio);
 }
 
-// Player Update Logic
+void Player_Add_Damage_Bonus(float amount)
+{
+	Bonus_Damage_Ratio += amount;
+}
+
+void Player_Add_Speed_Bonus(float amount)
+{
+	Bonus_Speed_Ratio += amount;
+}
+
+void Player_Add_HP_Bonus(float amount)
+{
+	Bonus_HP_Ratio += amount;
+
+	int addedHP = static_cast<int>(Player_Base_MaxHP * amount);
+
+	Player_MaxHP += addedHP;
+	Player_HP += addedHP;
+}
+
+// ----------------------------------------------------------------------------------------------------------------
+//												Player Update Logic
+// ----------------------------------------------------------------------------------------------------------------
+
+XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat_Right)
+{
+	// 1. Vector Init
+	XMVECTOR InputDir = XMVectorZero();
+
+	// 2. Get Vector From Key Input
+	if (KeyLogger_IsPressed(KK_W)) InputDir += Flat_Front;
+	if (KeyLogger_IsPressed(KK_S)) InputDir -= Flat_Front;
+	if (KeyLogger_IsPressed(KK_D)) InputDir += Flat_Right;
+	if (KeyLogger_IsPressed(KK_A)) InputDir -= Flat_Right;
+
+	// 3. Get Length Squared
+	XMVECTOR LengthSq = XMVector3LengthSq(InputDir);
+	float lenSq = XMVectorGetX(LengthSq);
+
+	// 4. If Moved, Normalize And Return
+	if (lenSq > 0.0001f)
+	{
+		Is_Input_Moving = true;
+		return Dir + XMVector3Normalize(InputDir);
+	}
+	else
+	{
+		Is_Input_Moving = false;
+		return Dir;
+	}
+}
+
 static void Player_Update_Teleport_System()
 {
 	float Half_Size_X = Mash_Field_Get_Size_X() * 0.5f;
@@ -426,6 +557,33 @@ static void Player_Update_Teleport_System()
 	{
 		Player_Pos.z += Mash_Field_Get_Size_Z();
 		Teleport = true;
+	}
+}
+
+void Player_Update_Respawn_System(XMVECTOR Velocity)
+{
+	XMVECTOR Vel = Velocity;
+
+	// Ground Collision Check
+	float Ground_Y = Mash_Field_Get_Height(Player_Pos.x, Player_Pos.z);
+
+	if (Ground_Y > -1000.0f)
+	{
+		if (Player_Pos.y < Ground_Y && XMVectorGetY(Vel) <= 0.0f)
+		{
+			Player_Pos.y = Ground_Y;
+			Vel = XMVectorSetY(Vel, 0.0f);
+			Player_Vel.y = 0.0f;
+
+			Is_Jump = false;
+		}
+	}
+
+	if (Player_Pos.y < -100.0f)
+	{
+		Player_Pos = Player_Start_POS;
+
+		Player_Vel = { 0.0f, 0.0f, 0.0f };
 	}
 }
 
@@ -516,31 +674,4 @@ static XMVECTOR Player_Update_AABB_System(XMVECTOR Velocity)
 	}
 
 	return Vel;
-}
-
-void Player_Update_Respawn_System(XMVECTOR Velocity)
-{
-	XMVECTOR Vel = Velocity;
-
-	// Ground Collision Check
-	float Ground_Y = Mash_Field_Get_Height(Player_Pos.x, Player_Pos.z);
-
-	if (Ground_Y > -1000.0f)
-	{
-		if (Player_Pos.y < Ground_Y && XMVectorGetY(Vel) <= 0.0f)
-		{
-			Player_Pos.y = Ground_Y;       
-			Vel = XMVectorSetY(Vel, 0.0f); 
-			Player_Vel.y = 0.0f;           
-
-			Is_Jump = false; 
-		}
-	}
-
-	if (Player_Pos.y < -100.0f)
-	{
-		Player_Pos = Player_Start_POS;
-
-		Player_Vel = { 0.0f, 0.0f, 0.0f };
-	}
 }

@@ -1,6 +1,6 @@
 /*==============================================================================
 
-    Manafe In Game Menu [In_Game_Menu.h]
+    Manage In Game Menu [In_Game_Menu.h]
 
     Author : Choi HyungJoon
 
@@ -43,6 +43,7 @@ static bool Is_Going_Main = false;
 void In_Game_Menu_Initialize()
 {
     In_Game_Menu_Texture();
+    In_Game_Menu_Reset();
 
     float Screen_W = static_cast<float>(Direct3D_GetBackBufferWidth());
     float Screen_H = static_cast<float>(Direct3D_GetBackBufferHeight());
@@ -74,10 +75,20 @@ void In_Game_Menu_Finalize()
 
 void In_Game_Menu_Reset()
 {
-    IG_Buffer = IN_GAME_BUFFER::NONE;
+    Set_In_Game_Buffer(IN_GAME_BUFFER::NONE);
     Is_Mouse_Left_Clicked_Prev = false;
     Is_Going_Main = false;
     Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
+}
+
+void Set_In_Game_Buffer(IN_GAME_BUFFER Buffer)
+{
+    IG_Buffer = Buffer;
+}
+
+IN_GAME_BUFFER Get_In_Game_Buffer()
+{
+    return IG_Buffer;
 }
 
 
@@ -103,9 +114,8 @@ void In_Game_Menu_Update(double elapsed_time)
         if (Fade_GetState() == FADE_STATE::FINISHED_OUT)
         {
             Mixer_Init();
-
             Game_Info_Reset();
-
+            In_Game_Menu_Reset();
             Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
 
             Game_Manager::GetInstance()->Update_Main_Screen(Main_Screen::MENU_SELECT);
@@ -137,37 +147,65 @@ void In_Game_Menu_Update(double elapsed_time)
 
     if (Mouse_Moved)
     {
-        if (Is_Mouse_In_RECT(Mouse_In_Game_Menu.X, Mouse_In_Game_Menu.Y, UI_X, Resume_Y, UI_W, UI_H))
+        if (Is_Mouse_In_RECT(Mouse_In_Game_Menu.X, Mouse_In_Game_Menu.Y, UI_X, Main_Y, UI_W, UI_H))
         {
-            IG_Buffer = IN_GAME_BUFFER::RESUME;
+            Set_In_Game_Buffer(IN_GAME_BUFFER::MAIN_MENU);
         }
         else if (Is_Mouse_In_RECT(Mouse_In_Game_Menu.X, Mouse_In_Game_Menu.Y, UI_X, Setting_Y, UI_W, UI_H))
         {
-            IG_Buffer = IN_GAME_BUFFER::SETTING;
+            Set_In_Game_Buffer(IN_GAME_BUFFER::SETTING);
         }
-        else if (Is_Mouse_In_RECT(Mouse_In_Game_Menu.X, Mouse_In_Game_Menu.Y, UI_X, Main_Y, UI_W, UI_H))
+        else if (Is_Mouse_In_RECT(Mouse_In_Game_Menu.X, Mouse_In_Game_Menu.Y, UI_X, Resume_Y, UI_W, UI_H))
         {
-            IG_Buffer = IN_GAME_BUFFER::MAIN_MENU;
+            Set_In_Game_Buffer(IN_GAME_BUFFER::RESUME);
         }
         else
         {
-            IG_Buffer = IN_GAME_BUFFER::WAIT;
+            Set_In_Game_Buffer(IN_GAME_BUFFER::WAIT);
         }
     }
 
-    if (KeyLogger_IsTrigger(KK_W) || KeyLogger_IsTrigger(KK_UP))
+    if (KeyLogger_IsTrigger(KK_W) || KeyLogger_IsTrigger(KK_UP) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_UP))
     {
-        Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-        if (IG_Buffer == IN_GAME_BUFFER::SETTING) IG_Buffer = IN_GAME_BUFFER::RESUME;
-        else if (IG_Buffer == IN_GAME_BUFFER::MAIN_MENU) IG_Buffer = IN_GAME_BUFFER::SETTING;
-        else IG_Buffer = IN_GAME_BUFFER::RESUME;
+        if (Get_In_Game_Buffer() == IN_GAME_BUFFER::NONE || Get_In_Game_Buffer() == IN_GAME_BUFFER::WAIT)
+        {
+            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            Set_In_Game_Buffer(IN_GAME_BUFFER::MAIN_MENU);
+        }
+        else
+        {
+            if (Get_In_Game_Buffer() == IN_GAME_BUFFER::SETTING)
+            {
+                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Set_In_Game_Buffer(IN_GAME_BUFFER::MAIN_MENU);
+            }
+            else if (Get_In_Game_Buffer() == IN_GAME_BUFFER::RESUME)
+            {
+                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Set_In_Game_Buffer(IN_GAME_BUFFER::SETTING);
+            }
+        }
     }
-    if (KeyLogger_IsTrigger(KK_S) || KeyLogger_IsTrigger(KK_DOWN))
+    else if (KeyLogger_IsTrigger(KK_S) || KeyLogger_IsTrigger(KK_DOWN) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_DOWN))
     {
-        Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-        if (IG_Buffer == IN_GAME_BUFFER::RESUME) IG_Buffer = IN_GAME_BUFFER::SETTING;
-        else if (IG_Buffer == IN_GAME_BUFFER::SETTING) IG_Buffer = IN_GAME_BUFFER::MAIN_MENU;
-        else IG_Buffer = IN_GAME_BUFFER::MAIN_MENU;
+        if (Get_In_Game_Buffer() == IN_GAME_BUFFER::NONE || Get_In_Game_Buffer() == IN_GAME_BUFFER::WAIT)
+        {
+            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            Set_In_Game_Buffer(IN_GAME_BUFFER::RESUME);
+        }
+        else
+        {
+            if (Get_In_Game_Buffer() == IN_GAME_BUFFER::MAIN_MENU)
+            {
+                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Set_In_Game_Buffer(IN_GAME_BUFFER::SETTING);
+            }
+            else if (Get_In_Game_Buffer() == IN_GAME_BUFFER::SETTING)
+            {
+                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Set_In_Game_Buffer(IN_GAME_BUFFER::RESUME);
+            }
+        }
     }
 
     if (Confirm)
@@ -197,6 +235,7 @@ void In_Game_Menu_Update(double elapsed_time)
     {
         Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
         Game_Manager::GetInstance()->Update_Game_Select_Screen(Game_Select_Screen::GAME_PLAYING);
+        In_Game_Menu_Reset();
     }
 }
 

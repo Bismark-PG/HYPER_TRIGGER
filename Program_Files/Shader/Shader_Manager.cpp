@@ -58,6 +58,20 @@ bool Shader_Manager::Init(ID3D11Device* device, ID3D11DeviceContext* context)
     if (!loadVertexShader("Resource/Shader/shader_vertex_Billboard.cso", m_vsBillboard, m_ilBillboard, layoutBillboard, ARRAYSIZE(layoutBillboard))) return false;
     if (!loadPixelShader("Resource/Shader/shader_pixel_Billboard.cso", m_psBillboard)) return false;
 
+    // --- Initialize Skinning Shaders ---
+    // Animation Model Need Bone ID And Weight.
+    D3D11_INPUT_ELEMENT_DESC layoutSkinning[] = {
+        { "POSITION",     0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "NORMAL",       0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR",        0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD",     0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        // Bone Indices
+        { "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT,  0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        // Bone Weights
+        { "BLENDWEIGHT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+    if (!loadVertexShader("Resource/Shader/shader_vertex_Skinning.cso", m_vsSkinning, m_ilSkinning, layoutSkinning, ARRAYSIZE(layoutSkinning))) return false;
+
     // --- Create Constant Buffers ---
     D3D11_BUFFER_DESC cbDesc = {};
     cbDesc.ByteWidth = sizeof(XMFLOAT4X4);
@@ -172,6 +186,13 @@ bool Shader_Manager::Init(ID3D11Device* device, ID3D11DeviceContext* context)
 #endif
         return false;
     }
+
+    // --- Create Bone Constant Buffer ---
+    D3D11_BUFFER_DESC boneBufferDesc = {};
+    boneBufferDesc.ByteWidth = sizeof(Bone_Buffer); // 256 * 64 bytes
+    boneBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    boneBufferDesc.Usage = D3D11_USAGE_DEFAULT;     // Will Be Update For Every Frame Or OBJ, So Use DEFAULT or DYNAMIC
+    m_device->CreateBuffer(&boneBufferDesc, nullptr, &m_cbBones);
 
     return true;
 }
@@ -431,6 +452,64 @@ void Shader_Manager::SetPointLightCount(int count)
     m_PointLightData.point_light_count = count;
 }
 
+void Shader_Manager::Begin3D_Skinning(Shader_Filter Filter)
+{
+    // Change Vertex Shader
+    m_context->VSSetShader(m_vsSkinning.Get(), nullptr, 0);
+    // Reuse Pixel Shader For 3D Lighting
+    m_context->PSSetShader(m_ps3D.Get(), nullptr, 0);
+
+    m_context->IASetInputLayout(m_ilSkinning.Get());
+
+    // --- VS Buffers ---
+    // b0(World), b1(View), b2(Proj) Is Same To 3D
+    ID3D11Buffer* vsCbs[] = { m_cbWorld3D.Get(), m_cbView3D.Get(), m_cbProjection3D.Get(), m_cbBones.Get() };
+    // b0 ~ b3 = 4
+    m_context->VSSetConstantBuffers(0, 4, vsCbs);
+
+    // --- PS Buffers ---
+    // Set Same To 3D P.S
+    ID3D11Buffer* psCbs[] = {
+        m_cbDiffuseColorPS.Get(), // b0
+        m_cbAmbient3D.Get(),      // b1
+        m_cbDirectional3D.Get(),  // b2
+        m_cbSpecular3D.Get(),     // b3
+        m_cbPointLightPS.Get()    // b4
+    };
+    m_context->PSSetConstantBuffers(0, 5, psCbs);
+
+    // Sampler Setting
+    switch (Filter)
+    {
+    case Shader_Filter::MAG_MIP_POINT:
+        m_context->PSSetSamplers(0, 1, m_sampler_Point.GetAddressOf());
+        break;
+    case Shader_Filter::MAG_MIP_LINEAR:
+        m_context->PSSetSamplers(0, 1, m_sampler_Linear.GetAddressOf());
+        break;
+    case Shader_Filter::ANISOTROPIC:
+        m_context->PSSetSamplers(0, 1, m_sampler_AnisoTropic.GetAddressOf());
+        break;
+    }
+
+    SetAlphaBlend(false);
+}
+
+void Shader_Manager::SetBones(const DirectX::XMFLOAT4X4* bones, int count)
+{
+    if (count > 256) count = 256; // Lock Buffer Scale
+
+    Bone_Buffer cbData = {};
+
+    // If Bone Working Is Werid, Use XMMatrixTranspose Change
+    for (int i = 0; i < count; ++i)
+    {
+        DirectX::XMMATRIX m = DirectX::XMLoadFloat4x4(&bones[i]);
+        DirectX::XMStoreFloat4x4(&cbData.boneTransforms[i], DirectX::XMMatrixTranspose(m));
+    }
+
+    m_context->UpdateSubresource(m_cbBones.Get(), 0, nullptr, &cbData, 0, 0);
+}
 
 // --- Private Helper Methods ---
 bool Shader_Manager::loadVertexShader(const char* filename, ComPtr<ID3D11VertexShader>& vs, ComPtr<ID3D11InputLayout>& il, const D3D11_INPUT_ELEMENT_DESC* layout, UINT numElements)

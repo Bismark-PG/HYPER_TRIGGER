@@ -237,17 +237,17 @@ void Select_Game_Mode_Draw()
     Direct3D_SetDepthEnable(false);
     Shader_Manager::GetInstance()->Begin2D();
 
-    XMFLOAT4 A_Origin = Alpha_Origin;
-    XMFLOAT4 A_Half   = Alpha_Half;
+    XMFLOAT4 XMF4_A_Origin = Alpha_Origin;
+    XMFLOAT4 XMF4_A_Half   = Alpha_Half;
 
     Sprite_Draw(UI_Wave_Mode, UI_X, Story_Y, UI_Width, UI_Height, A_Zero,
-        (Get_Select_Menu_Buffer() == SELECT_MODE_BUFFER::STORY_MODE) ? A_Origin : A_Half);
+        (Get_Select_Menu_Buffer() == SELECT_MODE_BUFFER::STORY_MODE) ? XMF4_A_Origin : XMF4_A_Half);
 
     Sprite_Draw(UI_Endless_Mode, UI_X, Endless_Y, UI_Width, UI_Height, A_Zero,
-        (Get_Select_Menu_Buffer() == SELECT_MODE_BUFFER::ENDLESS_MODE) ? A_Origin : A_Half);
+        (Get_Select_Menu_Buffer() == SELECT_MODE_BUFFER::ENDLESS_MODE) ? XMF4_A_Origin : XMF4_A_Half);
 
     Sprite_Draw(UI_Back, UI_X, Back_Y, UI_Width, UI_Height, A_Zero,
-        (Get_Select_Menu_Buffer() == SELECT_MODE_BUFFER::BACK) ? A_Origin : A_Half);
+        (Get_Select_Menu_Buffer() == SELECT_MODE_BUFFER::BACK) ? XMF4_A_Origin : XMF4_A_Half);
 }
 
 SELECT_MODE_BUFFER Get_Select_Menu_Buffer()

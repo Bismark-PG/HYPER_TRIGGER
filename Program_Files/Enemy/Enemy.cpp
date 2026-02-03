@@ -19,6 +19,9 @@
 #include "Billboard_Manager.h"
 #include "Shader_Manager.h"
 #include "Audio_Manager.h"
+#include "Upgrade_System.h"  
+#include "Weapon_System.h"   
+#include "Random_Heapler_Logic.h"
 using namespace DirectX;
 
 // Enemy Class Implementation
@@ -86,14 +89,7 @@ void Enemy::Deactivate()
 
 	Audio_Manager::GetInstance()->Play_SFX("Enemy_Dead");
 
-	if (m_Info.Type == EnemyType::GROUND_TANKER)
-	{
-		Resource_Manager::GetInstance().Spawn_Resource(Position, Resource_Type::HEALTH_POT, 25.0f);
-	}
-	Resource_Manager::GetInstance().Spawn_Resource(Position, Resource_Type::EXP_ORB, m_Info.EXP_Mount);
-
 	float effectScale = m_Info.Scale * 0.6f;
-
 	Billboard_Manager::Instance().Create_Effect(Position, 0, effectScale, Effect_Type::EXPLOSION);
 }
 
@@ -159,7 +155,9 @@ void Enemy::OnDamage(int damage)
 	m_HP -= FinalDamage;
 
 	if (m_HP <= 0)
+
 	{
+		Drop_Reward();
 		Deactivate();
 	}
 }
@@ -178,6 +176,167 @@ AABB Enemy::GetAABB() const
 	XMStoreFloat3(&worldAABB.Max, Max + Pos);
 
 	return worldAABB;
+}
+
+void Enemy::Drop_Reward()
+{
+	Drop_Exp_And_HP();
+	Drop_Weapon();
+}
+
+void Enemy::Drop_Exp_And_HP() const
+{
+	if (m_Info.Type == EnemyType::GROUND_TANKER)
+	{
+		Resource_Manager::GetInstance().Spawn_Resource(Position, Resource_Type::HEALTH_POT, 25.0f);
+	}
+	Resource_Manager::GetInstance().Spawn_Resource(Position, Resource_Type::EXP_ORB, m_Info.EXP_Mount);
+}
+
+void Enemy::Drop_Weapon()
+{
+	// Check Inventory
+	const auto& Inventory = Weapon_System::GetInstance().GetInventory();
+	size_t InvenSize = Inventory.size();
+
+	// Get Enemy Type
+	bool Is_Special = (m_Info.Type == EnemyType::GROUND_TANKER);
+	// If, Expend Special Type, Inpt Here
+
+	// If Drop Failed, Return
+	if (!Is_Weapon_Drop(InvenSize, Is_Special))
+	{
+		return;
+	}
+
+	// Check Weapon Lock State From Card
+	int Locked_ID = Upgrade_System::GetInstance().Get_Weapon_Lock_State();
+
+	// Set Weapon Type
+	WeaponType Drop_Type = Get_Weapon_Probabilities(Locked_ID, Is_Special, Inventory);
+
+	// Make Weapon Box
+	Resource_Manager::GetInstance().Spawn_Resource(Position, Resource_Type::WEAPON_BOX, 0.0f, Drop_Type);
+}
+
+bool Enemy::Is_Weapon_Drop(size_t InvenSize, bool Is_Special)
+{
+	// --------------------------------------------------------
+	//                  Weapon Drop Logic
+	// --------------------------------------------------------
+	
+	// If Inventory Is Full, Do Not Drop
+	if (InvenSize >= 3)
+	{
+		return false; // Full
+	}
+
+	// Get Drop Chance
+	float Drop_Chance = 0.0f;
+
+	if (Is_Special)
+	{
+		Drop_Chance = 1.0f; // InvenSize 1, 2 >> 100%
+	}
+	else
+	{
+		if (InvenSize <= 1) 
+		{
+			Drop_Chance = 1.0f; // InvenSize 1 >> 100%
+		}
+		else                
+		{
+			Drop_Chance = 0.5f; // InvenSize 2 >> 50%
+		}
+	}
+
+	// Dice Roll
+	if (RandomFloat() > Drop_Chance)
+	{
+		return false; // Fail
+	}
+
+	return true;
+}
+
+WeaponType Enemy::Get_Weapon_Probabilities(int Locked_ID, bool Is_Special, const std::deque<WeaponState>& Inventory)
+{
+	// --------------------------------------------------------
+	//               Weapon Type Selection Logic
+	// --------------------------------------------------------
+
+	// Set Weapon Type
+	WeaponType W_Type = WeaponType::HANDGUN;
+
+	// If Weapon Type Locked
+	if (Locked_ID != -1)
+	{
+		W_Type = static_cast<WeaponType>(Locked_ID); // Only Drop Locked Weapon Type
+	}
+	else
+	{
+		// Get Weapon Probabilities
+		float Probs[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		// Set Default Probabilities
+		if (Is_Special)
+		{
+			// Special Type
+			Probs[0] = 0.25f; Probs[1] = 0.25f; Probs[2] = 0.25f; Probs[3] = 0.25f;
+		}
+		else
+		{
+			// Normal Type
+			Probs[0] = 0.30f; Probs[1] = 0.30f; Probs[2] = 0.25f; Probs[3] = 0.15f;
+		}
+
+		// Check Same Weapon Count
+		int Counts[4] = { 0, 0, 0, 0 };
+		for (const auto& w : Inventory)
+		{
+			Counts[static_cast<int>(w.Spec.Type)]++;
+		}
+
+		// Set Probabilities
+		for (int i = 0; i < 4; ++i)
+		{
+			if (Counts[i] >= 2)
+			{
+				// If Same Weaopn Count Over 2, Probabilities Decrease 0.15
+				float penalty = 0.15f;
+				if (Probs[i] < penalty) 
+				{
+					penalty = Probs[i]; // Safety Code
+				}
+
+				Probs[i] -= penalty;
+
+				// Other Weapon Probabilities Increase 0.05
+				for (int j = 0; j < 4; ++j)
+				{
+					if (i != j) Probs[j] += 0.05f;
+				}
+			}
+		}
+
+		// Get Weighted Random
+		float Dice = RandomFloat(); // 0.0 ~ 1.0
+		float Cumulative = 0.0f;
+
+		for (int i = 0; i < 4; ++i)
+		{
+			// Check Probabilities
+			Cumulative += Probs[i];
+
+			if (Dice <= Cumulative)
+			{
+				W_Type = static_cast<WeaponType>(i);
+				break;
+			}
+		}
+	}
+
+	return W_Type;
 }
 
 void Enemy::Enemy_Collision_Map(double dt)
@@ -243,7 +402,7 @@ void Enemy::Enemy_Collision_Player(double dt)
 			return;
 		}
 
-		Player_OnDamage(5);
+		Player_OnDamage(m_Info.Collision_Damage);
 
 		XMVECTOR V_Dir = V_E_Pos - V_P_Pos;
 		V_Dir = XMVector3Normalize(V_Dir);

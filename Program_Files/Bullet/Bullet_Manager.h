@@ -31,7 +31,8 @@ public:
     void Reset();
 
     void Fire(BulletType type, const DirectX::XMFLOAT3& visualPos, const DirectX::XMFLOAT3& logicalPos,
-        const DirectX::XMFLOAT3& dir, BulletOwner owner = BulletOwner::PLAYER);
+        const DirectX::XMFLOAT3& dir, int damage, BulletOwner owner = BulletOwner::PLAYER);
+
 private:
     Bullet_Manager() = default;
     ~Bullet_Manager() = default;

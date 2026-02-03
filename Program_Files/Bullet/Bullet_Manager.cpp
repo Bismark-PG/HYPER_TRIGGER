@@ -64,18 +64,19 @@ void Bullet_Manager::Reset()
 }
 
 void Bullet_Manager::Fire(BulletType type, const DirectX::XMFLOAT3& visualPos, const DirectX::XMFLOAT3& logicalPos,
-    const DirectX::XMFLOAT3& dir, BulletOwner owner)
+    const DirectX::XMFLOAT3& dir, int damage, BulletOwner owner)
 {
     Bullet* N_Bullet = nullptr;
 
     switch (type)
     {
     case BulletType::RAY:
-        N_Bullet = new Bullet_Ray(visualPos, logicalPos, dir, owner);
+        N_Bullet = new Bullet_Ray(visualPos, logicalPos, dir, owner, damage);
         break;
 
     case BulletType::GRENADE:
         N_Bullet = new Bullet_Grenade(visualPos, dir, owner);
+        //N_Bullet = new Bullet_Grenade(visualPos, dir, owner, damage);
         break;
     }
 

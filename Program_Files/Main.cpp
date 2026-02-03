@@ -114,7 +114,9 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			{
 				// Game Done (EXIT)
 				if (Fade_GetState() == FADE_STATE::FINISHED_OUT)
+				{
 					PostQuitMessage(0);
+				}
 			}
 
 			// Time Set
@@ -158,7 +160,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 				Direct3D_Clear();
 				Sprite_Begin();
 
-				// Real Draw Start
+				// Real Draw Startq
 				Main_Game_Screen_Update();
 
 				// Controller Input Alert
@@ -171,7 +173,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 					ImGui_ImplDX11_NewFrame();
 					ImGui_ImplWin32_NewFrame();
 					ImGui::NewFrame();
-
+					ImGui::GetIO().MouseDrawCursor = true;
 					ImGui::Begin("Debug Menu");
 
 					ImGui::Text("FPS: %.1f", FPS);
@@ -271,6 +273,151 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 							ImGui::TreePop();
 						}
+					}
+
+					// [Player Animation]
+					if (ImGui::CollapsingHeader("- Root Position Fix -", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Root Adjust");
+						ImGui::DragFloat("Root Y Offset##Root", &g_Model_Root_Y, 0.1f, -200.0f, 200.0f);
+					}
+
+					// ===== Left Arm =====
+					if (ImGui::CollapsingHeader("- Left Arm -", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[ Left Arm Control ]");
+
+						ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Clavicle (Shoulder Bone)");
+						ImGui::DragFloat("L-Clav X##ClavL", &g_L_Clavicle_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Clav Y##ClavL", &g_L_Clavicle_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Clav Z##ClavL", &g_L_Clavicle_Z, 1.0f, -360.0f, 360.0f);
+						ImGui::Separator();
+
+						ImGui::Text("Axis Invert:");
+						ImGui::SameLine(); ImGui::Checkbox("Inv X##ArmL", &g_L_Arm_Invert_X);
+						ImGui::SameLine(); ImGui::Checkbox("Inv Y##ArmL", &g_L_Arm_Invert_Y);
+						ImGui::SameLine(); ImGui::Checkbox("Inv Z##ArmL", &g_L_Arm_Invert_Z);
+
+						ImGui::Separator();
+						ImGui::Text("Upper Arm (Shoulder)");
+						ImGui::DragFloat("L-Up X##ArmL", &g_L_Arm_Upper_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Up Y##ArmL", &g_L_Arm_Upper_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Up Z##ArmL", &g_L_Arm_Upper_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Text("Fore Arm (Elbow)");
+						ImGui::DragFloat("L-Fore X##ArmL", &g_L_Arm_Fore_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Fore Y##ArmL", &g_L_Arm_Fore_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Fore Z##ArmL", &g_L_Arm_Fore_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Separator();
+						ImGui::Text("Hand (Wrist)");
+						ImGui::DragFloat("L-Hand X##HandL", &g_L_Hand_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Hand Y##HandL", &g_L_Hand_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Hand Z##HandL", &g_L_Hand_Z, 1.0f, -360.0f, 360.0f);
+					}
+
+					// ===== Right Arm =====
+					if (ImGui::CollapsingHeader("- Right Arm -", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[ Right Arm Control ]");
+
+						ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Clavicle (Shoulder Bone)");
+						ImGui::DragFloat("R-Clav X##ClavR", &g_R_Clavicle_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Clav Y##ClavR", &g_R_Clavicle_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Clav Z##ClavR", &g_R_Clavicle_Z, 1.0f, -360.0f, 360.0f);
+						ImGui::Separator();
+
+						ImGui::Text("Axis Invert:");
+						ImGui::SameLine(); ImGui::Checkbox("Inv X##ArmR", &g_R_Arm_Invert_X);
+						ImGui::SameLine(); ImGui::Checkbox("Inv Y##ArmR", &g_R_Arm_Invert_Y);
+						ImGui::SameLine(); ImGui::Checkbox("Inv Z##ArmR", &g_R_Arm_Invert_Z);
+
+						ImGui::Separator();
+						ImGui::Text("Upper Arm (Shoulder)");
+						ImGui::DragFloat("R-Up X##ArmR", &g_R_Arm_Upper_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Up Y##ArmR", &g_R_Arm_Upper_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Up Z##ArmR", &g_R_Arm_Upper_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Text("Fore Arm (Elbow)");
+						ImGui::DragFloat("R-Fore X##ArmR", &g_R_Arm_Fore_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Fore Y##ArmR", &g_R_Arm_Fore_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Fore Z##ArmR", &g_R_Arm_Fore_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Separator();
+						ImGui::Text("Hand (Wrist)");
+						ImGui::DragFloat("R-Hand X##HandR", &g_R_Hand_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Hand Y##HandR", &g_R_Hand_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Hand Z##HandR", &g_R_Hand_Z, 1.0f, -360.0f, 360.0f);
+					}
+
+					// ===== Left Leg =====
+					if (ImGui::CollapsingHeader("- Left Leg -", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "[ Left Leg Control ]");
+
+						ImGui::Text("Axis Invert:");
+						ImGui::SameLine(); ImGui::Checkbox("Inv X##LegL", &g_L_Leg_Invert_X);
+						ImGui::SameLine(); ImGui::Checkbox("Inv Y##LegL", &g_L_Leg_Invert_Y);
+						ImGui::SameLine(); ImGui::Checkbox("Inv Z##LegL", &g_L_Leg_Invert_Z);
+
+						ImGui::Separator();
+						ImGui::Text("Upper Leg (Thigh)");
+						ImGui::DragFloat("L-Up X##LegL", &g_L_Leg_Upper_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Up Y##LegL", &g_L_Leg_Upper_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Up Z##LegL", &g_L_Leg_Upper_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Text("Lower Leg (Calf)");
+						ImGui::DragFloat("L-Low X##LegL", &g_L_Leg_Lower_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Low Y##LegL", &g_L_Leg_Lower_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Low Z##LegL", &g_L_Leg_Lower_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Text("Foot (Ankle)");
+						ImGui::DragFloat("L-Foot X##LegL", &g_L_Foot_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Foot Y##LegL", &g_L_Foot_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Foot Z##LegL", &g_L_Foot_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Text("Toe");
+						ImGui::DragFloat("L-Toe X##LegL", &g_L_Toe_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Toe Y##LegL", &g_L_Toe_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("L-Toe Z##LegL", &g_L_Toe_Z, 1.0f, -360.0f, 360.0f);
+					}
+
+					// ===== Right Leg =====
+					if (ImGui::CollapsingHeader("- Right Leg -", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "[ Right Leg Control ]");
+
+						ImGui::Text("Axis Invert:");
+						ImGui::SameLine(); ImGui::Checkbox("Inv X##LegR", &g_R_Leg_Invert_X);
+						ImGui::SameLine(); ImGui::Checkbox("Inv Y##LegR", &g_R_Leg_Invert_Y);
+						ImGui::SameLine(); ImGui::Checkbox("Inv Z##LegR", &g_R_Leg_Invert_Z);
+
+						ImGui::Separator();
+						ImGui::Text("Upper Leg (Thigh)");
+						ImGui::DragFloat("R-Up X##LegR", &g_R_Leg_Upper_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Up Y##LegR", &g_R_Leg_Upper_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Up Z##LegR", &g_R_Leg_Upper_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Text("Lower Leg (Calf)");
+						ImGui::DragFloat("R-Low X##LegR", &g_R_Leg_Lower_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Low Y##LegR", &g_R_Leg_Lower_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Low Z##LegR", &g_R_Leg_Lower_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Text("Foot (Ankle)");
+						ImGui::DragFloat("R-Foot X##LegR", &g_R_Foot_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Foot Y##LegR", &g_R_Foot_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Foot Z##LegR", &g_R_Foot_Z, 1.0f, -360.0f, 360.0f);
+
+						ImGui::Text("Toe");
+						ImGui::DragFloat("R-Toe X##LegR", &g_R_Toe_X, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Toe Y##LegR", &g_R_Toe_Y, 1.0f, -360.0f, 360.0f);
+						ImGui::DragFloat("R-Toe Z##LegR", &g_R_Toe_Z, 1.0f, -360.0f, 360.0f);
+					}
+
+					ImGui::Separator();
+					if (ImGui::Button("Reset All Rotations (To Default)", ImVec2(-1, 30)))
+					{
+						Model_Node_Reset();
 					}
 
 					ImGui::End();

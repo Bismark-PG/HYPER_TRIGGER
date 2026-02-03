@@ -14,32 +14,98 @@
 #include "Random_Heapler_Logic.h"
 #include "Audio_Manager.h"
 #include "Shader_Manager.h"
+#include "Upgrade_System.h"
+#include "Mash_Field.h"
 using namespace DirectX;
 
 void Resource_Manager::Init()
 {
+    Clear();
+
+}
+
+void Resource_Manager::Final()
+{
+    Clear();
+}
+
+void Resource_Manager::Clear()
+{
     m_Items.clear();
+
     m_Items.reserve(1000);
 
     m_Level = 1;
     m_CurrentExp = 0.0f;
     m_MaxExp = 100.0f;
+
+    m_Exp_Bonus_Ratio = 0.0f;
 }
 
-void Resource_Manager::Final()
+void Resource_Manager::Update(double elapsed_time)
 {
-    m_Items.clear();
-}
+    float dt = static_cast<float>(elapsed_time);
 
-void Resource_Manager::Update(double dt)
-{
     XMFLOAT3 pPos = Player_Get_POS();
     XMVECTOR vPlayerPos = XMLoadFloat3(&pPos);
+
+    float Hover_Height = 0.5f;
 
     for (auto& item : m_Items)
     {
         if (!item.Active) continue;
 
+        // Count Life Time
+        item.LifeTime -= dt;
+        if (item.LifeTime <= 0.0f)
+        {
+            item.Active = false;
+
+            // If Resource Type Is Weapom Bos, Delete Billboard
+            if (item.Type == Resource_Type::WEAPON_BOX)
+            {
+
+                if (item.Linked_Icon)
+                {
+                    item.Linked_Icon->Deactivate();
+                }
+                if (item.Linked_BG)
+                {
+                    item.Linked_BG->Deactivate();
+                }
+            }
+            continue;
+        }
+
+        // Get Height
+        float Ground_Y = Mash_Field_Get_Height(item.Position.x, item.Position.z);
+        float Target_Y = Ground_Y + Hover_Height;
+
+        // Set Gravity
+        if (item.Position.y > Target_Y)
+        {
+            // Fall 10.0f For Sec
+            item.Position.y -= 10.0f * dt;
+
+            if (item.Position.y < Target_Y)
+            {
+                item.Position.y = Target_Y;
+            }
+        }
+        // If Over The Ground, Get Hovering
+        else
+        {
+            // Hovering
+            float bobbing = sinf(static_cast<float>(GetTickCount64()) * 0.005f) * 0.1f;
+            item.Position.y = Target_Y + bobbing;
+        }
+
+        if (item.Type == Resource_Type::WEAPON_BOX)
+        {
+            continue;
+        }
+
+        // Make Resources With Random Range
         if (rand() % 10 < 3)
         {
             XMFLOAT3 particlePos = item.Position;
@@ -88,6 +154,9 @@ void Resource_Manager::Update(double dt)
             item.Active = false; // Invisiable
         }
     }
+
+    // Check Player Current EXP
+    Check_Level_Up();
 }
 
 void Resource_Manager::Draw()
@@ -128,8 +197,22 @@ void Resource_Manager::Reset()
     Init();
 }
 
-void Resource_Manager::Spawn_Resource(const DirectX::XMFLOAT3& pos, Resource_Type type, float value)
+void Resource_Manager::Spawn_Resource(const DirectX::XMFLOAT3& pos, Resource_Type type, float value, WeaponType wType)
 {
+    float lifeTime = {};
+
+    switch (type)
+    {
+    case Resource_Type::EXP_ORB:
+    case Resource_Type::HEALTH_POT:
+        lifeTime = 45.0f;
+        break;
+
+    case Resource_Type::WEAPON_BOX:
+        lifeTime = 15.0f;
+        break;
+    }
+
     // Object Pooling
     for (auto& item : m_Items)
     {
@@ -139,16 +222,105 @@ void Resource_Manager::Spawn_Resource(const DirectX::XMFLOAT3& pos, Resource_Typ
             item.Position = pos;
             item.Type = type;
             item.Value = value;
+            item.W_Type = wType;
+            item.LifeTime = lifeTime;
+
+            // If Resource Type Is Weapom Bos, Get Billboard
+            item.Linked_Icon = nullptr;
+            item.Linked_BG = nullptr;
+            if (type == Resource_Type::WEAPON_BOX)
+            {
+                Billboard_Manager::Instance().Create_Weapon(pos, wType, &item.Linked_Icon, &item.Linked_BG);
+            }
             return;
         }
     }
 
-    ResourceItem newItem;
+    ResourceItem newItem = {};
     newItem.Active = true;
     newItem.Position = pos;
     newItem.Type = type;
     newItem.Value = value;
+    newItem.W_Type = wType;
+    newItem.LifeTime = lifeTime;
+
+    // If Resource Type Is Weapom Bos, Get Billboard
+    if (type == Resource_Type::WEAPON_BOX)
+    {
+        Billboard_Manager::Instance().Create_Weapon(pos, wType, &newItem.Linked_Icon, &newItem.Linked_BG);
+    }
     m_Items.push_back(newItem);
+}
+
+ResourceItem* Resource_Manager::Get_Nearest_Weapon_In_View(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& dir, float range)
+{
+    ResourceItem* Is_Weapon_Box = nullptr;
+    float Max_Dot = -1.0f;
+
+    XMVECTOR Eye_Pos = XMLoadFloat3(&pos);
+    XMVECTOR Look_Dir = XMLoadFloat3(&dir);
+    float Range_Sqrt = range * range; // Sprt For Optimization
+
+    for (auto& item : m_Items)
+    {
+        if (!item.Active || item.Type != Resource_Type::WEAPON_BOX)
+        {
+            continue;
+        }
+
+        // ---------------------------------------------------------
+        // Distance Check
+        // ---------------------------------------------------------
+        XMVECTOR Item_Pos = XMLoadFloat3(&item.Position);
+        XMVECTOR Dist = Item_Pos - Eye_Pos;
+        float Dist_Sqrt = XMVectorGetX(XMVector3LengthSq(Dist)); // Sprt For Optimization
+
+        if (Dist_Sqrt > Range_Sqrt)
+        {
+            continue; // To Far
+        }
+
+        // ---------------------------------------------------------
+        // View Angle Check
+        // ---------------------------------------------------------
+        XMVECTOR Target_Pos = {};
+
+        // If Box Have Icon, Check Icon POS
+        if (item.Linked_Icon && item.Linked_Icon->IsActive())
+        {
+            XMFLOAT3 POS = item.Linked_Icon->GetPosition();
+            Target_Pos = XMLoadFloat3(&POS);
+        }
+        else
+        {
+            // If Box Don`t Have Icon, Just Aim To Box (For Safety)
+            Target_Pos = Item_Pos;
+        }
+
+        // Vector For Eye To Icon(Box)
+        XMVECTOR To_Target = Target_Pos - Eye_Pos;
+        To_Target = XMVector3Normalize(To_Target);
+
+        // Get Dot Product
+        float Dot = XMVectorGetX(XMVector3Dot(Look_Dir, To_Target));
+
+        // ---------------------------------------------------------
+        // Judgement
+        // Almost Front = 0.9f (Around Degree 25)
+        // Maybe Front = 0.85f (Around Degree 30)
+        // ---------------------------------------------------------
+        if (Dot > 0.85f)
+        {
+            // If So Many Box, Get Front Box
+            if (Dot > Max_Dot)
+            {
+                Max_Dot = Dot;
+                Is_Weapon_Box = &item;
+            }
+        }
+    }
+
+    return Is_Weapon_Box;
 }
 
 void Resource_Manager::Apply_Resource_Effect(const ResourceItem& item)
@@ -156,9 +328,11 @@ void Resource_Manager::Apply_Resource_Effect(const ResourceItem& item)
     switch (item.Type)
     {
     case Resource_Type::EXP_ORB:
-        m_CurrentExp += item.Value;
+    {
+        float finalExp = item.Value * (1.0f + m_Exp_Bonus_Ratio);
+        m_CurrentExp += finalExp;
         Audio_Manager::GetInstance()->Play_SFX("Player_Get_EXP");
-        Check_Level_Up();
+    }
         break;
 
     case Resource_Type::HEALTH_POT:
@@ -170,16 +344,21 @@ void Resource_Manager::Apply_Resource_Effect(const ResourceItem& item)
 
 void Resource_Manager::Check_Level_Up()
 {
-    while (m_CurrentExp >= m_MaxExp)
+    // If Player EXP Is Over Then Max EXP, Level UP
+    if (m_CurrentExp >= m_MaxExp)
     {
+        // Decrease Current EXP
         m_CurrentExp -= m_MaxExp;
+        
+        // Level UP, Increse Max EXP
         m_Level++;
         m_MaxExp *= 1.2f;
-        
-        // Stat UP
-        // When Update Game, Need To Change Logic
+
+        // Level Up Gift Resource To Player
         Player_LevelUp();
         Debug::D_Out << "Level Up! Current Level: " << m_Level << std::endl;
+
+        Upgrade_System::GetInstance().Show_Upgrade_Select();
     }
 }
 
@@ -187,4 +366,11 @@ float Resource_Manager::Get_Exp_Ratio() const
 {
     if (m_MaxExp <= 0.0f) return 0.0f;
     return m_CurrentExp / m_MaxExp;
+}
+
+void Resource_Manager::Add_Exp_Bonus(float ratio)
+{
+    m_Exp_Bonus_Ratio += ratio;
+
+    Debug::D_Out << "[Resource] EXP Bonus Added! Current Bonus: " << m_Exp_Bonus_Ratio * 100.0f << "%" << std::endl;
 }

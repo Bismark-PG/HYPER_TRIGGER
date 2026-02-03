@@ -53,6 +53,31 @@ void Game_Texture_Load()
     Texture_M->Load("Bullet", L"Resource/Texture/Other/Bullet.png");
     Texture_M->Load("Object", L"Resource/Texture/Other/OBJ.png");
 
+    //---------------------------------------------<< Card Texture >>---------------------------------------------//
+    //-----------------------------Weapon Card Texture-----------------------------//
+    Texture_M->Load("Card_HG_Ammo", L"Resource/Texture/UI/Card/Card_HG_Ammo_UP.png");
+    Texture_M->Load("Card_HG_Lock", L"Resource/Texture/UI/Card/Card_HG_Lock.png");
+
+    Texture_M->Load("Card_AR_Ammo", L"Resource/Texture/UI/Card/Card_AR_Ammo_UP.png");
+    Texture_M->Load("Card_AR_Lock", L"Resource/Texture/UI/Card/Card_AR_Lock.png");
+
+    Texture_M->Load("Card_MG_Ammo", L"Resource/Texture/UI/Card/Card_MG_Ammo_UP.png");
+    Texture_M->Load("Card_MG_Lock", L"Resource/Texture/UI/Card/Card_MG_Lock.png");
+
+    Texture_M->Load("Card_G_Ammo", L"Resource/Texture/UI/Card/Card_G_Ammo_UP.png");
+    Texture_M->Load("Card_G_Lock", L"Resource/Texture/UI/Card/Card_G_Lock.png");
+
+    //--------------------------Stat Upgrade Card Texture--------------------------//
+    Texture_M->Load("Card_HP_UP", L"Resource/Texture/UI/Card/Card_HP_UP.png");
+
+    Texture_M->Load("Card_ATK_UP_Small", L"Resource/Texture/UI/Card/Card_ATK_UP_S.png");
+    Texture_M->Load("Card_ATK_UP_Big", L"Resource/Texture/UI/Card/Card_ATK_UP_B.png");
+
+    Texture_M->Load("Card_EXP_UP_Small", L"Resource/Texture/UI/Card/Card_EXP_UP_S.png");
+    Texture_M->Load("Card_EXP_UP_Big", L"Resource/Texture/UI/Card/Card_EXP_UP_B.png");
+
+    Texture_M->Load("Card_Speed_UP", L"Resource/Texture/UI/Card/Card_Speed_UP.png");
+    
     //----------------------------------------------<< BG Texture >>----------------------------------------------//
     Texture_M->Load("BG_Menu", L"Resource/Texture/BG/BG_Menu.png");
     Texture_M->Load("BG_Title", L"Resource/Texture/BG/BG_Title.png");
@@ -68,8 +93,20 @@ void Game_Texture_Load()
     Texture_M->Load("Aim", L"Resource/Texture/UI/UI_Aim.png");
     Texture_M->Load("HP_Bar", L"Resource/Texture/UI/UI_HP.png");
     Texture_M->Load("HP_Fill", L"Resource/Texture/UI/UI_HP_BAR.png");
-    Texture_M->Load("EXP_Bar", L"Resource/Texture/UI/UI_EXP.png");
-    Texture_M->Load("EXP_Fill", L"Resource/Texture/UI/UI_EXP_BAR.png");
+    Texture_M->Load("EXP_Bar", L"Resource/Texture/UI/UI_EXP_L.png");
+    Texture_M->Load("EXP_Fill", L"Resource/Texture/UI/UI_EXP_BAR_L.png");
+
+    //---------------------UI : Weapon Texture---------------------//
+    Texture_M->Load("UI_Weapon_Box", L"Resource/Texture/UI/UI_Weapon.png");
+    Texture_M->Load("UI_Weapon_Drop_Box", L"Resource/Texture/UI/UI_Drop_Box.png");
+    Texture_M->Load("UI_Ammo_Box", L"Resource/Texture/UI/UI_Long_Square.png");
+
+    Texture_M->Load("UI_HG", L"Resource/Texture/UI/UI_HG.png");
+    Texture_M->Load("UI_AR", L"Resource/Texture/UI/UI_AR.png");
+    Texture_M->Load("UI_MG", L"Resource/Texture/UI/UI_MG.png");
+    Texture_M->Load("UI_Grenade", L"Resource/Texture/UI/UI_Grenade.png");
+
+    Texture_M->Load("Reload", L"Resource/Texture/UI/UI_Reload.png");
 
     //---------------------UI : Main Menu Texture---------------------//
     Texture_M->Load("Start", L"Resource/Texture/UI/Menu_Start.png");
@@ -102,6 +139,7 @@ void Game_Texture_Load()
     Texture_M->Load("UI_Num_8", L"Resource/Texture/UI/Num/UI_Num_8.png");
     Texture_M->Load("UI_Num_9", L"Resource/Texture/UI/Num/UI_Num_9.png");
     Texture_M->Load("UI_Num_MAX", L"Resource/Texture/UI/Num/UI_Num_Max.png");
+    Texture_M->Load("UI_Num_Slash", L"Resource/Texture/UI/Num/UI_Num_Slash.png");
 
     Texture_M->Load("UI_Num_Button_L", L"Resource/Texture/UI/Num/UI_Button_L.png");
     Texture_M->Load("UI_Num_Button_R", L"Resource/Texture/UI/Num/UI_Button_R.png");

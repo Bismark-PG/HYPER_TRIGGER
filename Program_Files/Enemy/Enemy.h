@@ -11,6 +11,7 @@
 #include "Collision.h"
 #include "model.h"
 #include "Enemy_Type.h"
+#include "Weapon_Info.h"
 
 enum class EnemyState
 {
@@ -41,6 +42,13 @@ public:
 	DirectX::XMFLOAT3 GetPosition() const { return Position; }
 
 protected:
+	// --- Drop Resource ---
+	void Drop_Reward();
+	void Drop_Exp_And_HP() const;
+	void Drop_Weapon();
+	bool Is_Weapon_Drop(size_t InvenSize, bool Is_Special);
+	WeaponType Get_Weapon_Probabilities(int Locked_ID, bool Is_Special, const std::deque<WeaponState>& Inventory);
+
 	// --- State ---
 	bool m_IsActive = false;
 	Enemy_Info m_Info;

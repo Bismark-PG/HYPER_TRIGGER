@@ -7,7 +7,6 @@
 ==============================================================================*/
 #ifndef BULLET_RAY_H
 #define BULLET_RAY_H
-
 #include "Bullet.h"
 #include "Enemy_Manager.h"
 #include "Map_System.h"
@@ -24,14 +23,15 @@ using namespace DirectX;
 class Bullet_Ray : public Bullet
 {
 public:
-    Bullet_Ray(const XMFLOAT3& visualPos, const XMFLOAT3& logicalPos, const XMFLOAT3& dir, BulletOwner owner)
+    Bullet_Ray(const XMFLOAT3& visualPos, const XMFLOAT3& logicalPos, const XMFLOAT3& dir, BulletOwner owner, int damage)
         : Bullet(visualPos, dir, owner)
         , m_StartPosition(visualPos)
         , m_TargetPosition{}        
         , m_HitEnemy(false)
         , m_HitWall(false)
     {
-        m_Damage = 10;          // Enemy Ray Bullet Damage
+        m_Damage = damage;
+
         m_MaxRange = 100.0f;    // Range of the Ray
         m_StepSize = 0.5f;      // Step Size for Ray Marching
         m_VisualSpeed = 5.0f;  // Enemy Bullet Speed
@@ -41,7 +41,6 @@ public:
         // If Fire Owner Is Player, Set Ray Mode
         if (m_Owner == BulletOwner::PLAYER)
         {
-            m_Damage = 20;          // Ray Bullet Damage
             m_VisualSpeed = 100.0f; // Bullet Speed
             Calculate_Hit_Point(logicalPos, dir);
 

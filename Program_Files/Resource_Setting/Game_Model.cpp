@@ -32,19 +32,24 @@ void Model_Manager::Final()
 
 void Model_Manager::Load(ID3D11Device* device, ID3D11DeviceContext* context)
 {
-    MODEL* Player = ModelLoad("Resource/Model/Y_Bot.fbx", 0.01f, false);
+    MODEL* Player = ModelLoad("Resource/Model/Player_Swat.fbx", false);
     if (Player)
+    {
+        Model_Add_Animation(Player, "Idle", "Resource/Model/Animation/Player_Idle.fbx");
+        Model_Add_Animation(Player, "F_Move", "Resource/Model/Animation/Player_Walk.fbx");
+        Model_Add_Animation(Player, "Jump", "Resource/Model/Animation/Player_Jump.fbx");
+        
+        // Set Default Animation
+        Model_Play_Animation(Player, "Idle");
+
         m_ModelDB["Player"] = Player;
+    }
 
-    MODEL* carModel = ModelLoad("Resource/Model/Benz_GLS_580_2020.fbx", 0.01f, true);
-    if (carModel)
-        m_ModelDB["Car"] = carModel;
-
-    MODEL* Sky = ModelLoad("Resource/Model/sky.fbx", 1.0f, false);
+    MODEL* Sky = ModelLoad("Resource/Model/sky.fbx", false);
     if (Sky)
         m_ModelDB["Sky"] = Sky;
 
-    MODEL* Ball = ModelLoad("Resource/Model/ball.fbx", 1.0f, false);
+    MODEL* Ball = ModelLoad("Resource/Model/ball.fbx", false);
     if (Ball)
         m_ModelDB["Ball"] = Ball;
 }

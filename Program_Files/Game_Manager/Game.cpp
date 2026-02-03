@@ -37,6 +37,8 @@
 #include "BGM_Mixer.h"
 #include "Wave_Data.h"
 #include "Fade.h"
+#include "Weapon_System.h"
+#include "Upgrade_System.h"
 using namespace DirectX;
 using namespace PALETTE;
 
@@ -45,8 +47,6 @@ static XMFLOAT3 Player_First_POS = { 0.0f, 5.0f, -5.0f };
 static bool Is_Debug_Mode = false;
 static bool Is_Sights_Change = false;
 
-// DJ Data
-static std::vector<Music_Trigger_Info> Current_Music_Triggers;
 static float Game_Play_Time = 0.0f;
 static int Last_Processed_Loop = -1;
 static bool Is_Game_Clear_Sequence = false;
@@ -69,6 +69,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	Particle_Manager::GetInstance().Init();
 	Resource_Manager::GetInstance().Init();
+	Upgrade_System::GetInstance().Init();
 
 	Game_UI_Initialize();
 }
@@ -77,6 +78,7 @@ void Game_Finalize()
 {
 	Game_UI_Finalize();
 	
+	Upgrade_System::GetInstance().Final();
 	Resource_Manager::GetInstance().Final();
 	Particle_Manager::GetInstance().Final();
 
@@ -94,9 +96,34 @@ void Game_Finalize()
 
 void Game_Update(double elapsed_time)
 {
+	if (KeyLogger_IsTrigger(KK_F1))
+	{
+		Is_Debug_Mode = !Is_Debug_Mode;
+
+		Debug_Mode_Switcher();
+		Debug_Mode_Set();
+
+		if (Is_Debug_Mode)
+		{
+			Debug_Camera_Set_Position(Player_Camera_Get_Current_POS());
+			Debug_Camera_Set_Rotation(Player_Camera_Get_Yaw(), Player_Camera_Get_Pitch());
+		}
+		else 
+		{
+		    Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
+		}
+	}
+
+	if (Upgrade_System::GetInstance().Is_Active())
+	{
+		Upgrade_System::GetInstance().Update();
+		return;
+	}
+
 	if (Get_Debug_Mode_State())
 	{
 		Debug_Camera_Update(elapsed_time);
+		Player_Update(elapsed_time);
 		return;
 	}
 
@@ -137,6 +164,7 @@ void Game_Update(double elapsed_time)
 		if (Audio_Manager::GetInstance()->Get_Target_BGM_Volume() > 0.01f)
 		{
 			Is_Music_Synced = true;
+			Weapon_System::GetInstance().SyncBGM();
 			Debug::D_Out << "[DJ System] Sync Started via Volume/Loop Check" << std::endl;
 		}
 	}
@@ -147,25 +175,10 @@ void Game_Update(double elapsed_time)
 
 		if (Current_Loop > Last_Processed_Loop)
 		{
-			for (auto& trigger : Current_Music_Triggers)
-			{
-				if (!trigger.Is_Set && trigger.Loop_Index == Current_Loop)
-				{
-					if (strcmp(trigger.L_Name, "END_SIGNAL") == 0)
-					{
-						Is_Game_Clear_Sequence = true;
-						Debug::D_Out << "[DJ System] END_SIGNAL Active at Loop " << Current_Loop << std::endl;
-						Fade_Start(3.0f, true);
-					}
-					else
-					{
-						Mixer_Control_Layer(trigger.L_Name, trigger.Is_On);
-						Debug::D_Out << "[DJ System] Loop " << Current_Loop << " : "
-							<< trigger.L_Name << (trigger.Is_On ? " ON" : " OFF") << std::endl;
-					}
-					trigger.Is_Set = true;
-				}
-			}
+			Weapon_System::GetInstance().SyncBGM();
+
+			Debug::D_Out << "[DJ System] Loop " << Current_Loop << " : Weapons Synced" << std::endl;
+
 			Last_Processed_Loop = Current_Loop;
 		}
 	}
@@ -184,17 +197,6 @@ void Game_Update(double elapsed_time)
 		Is_Sights_Change = true;
 		Player_Camera_Change_Sights();
 		Is_Sights_Change = false;
-	}
-
-	if (KeyLogger_IsTrigger(KK_F1))
-	{
-		Is_Debug_Mode = !Is_Debug_Mode;
-
-		Debug_Mode_Switcher();
-		Debug_Mode_Set();
-
-		Debug_Camera_Set_Position(Player_Camera_Get_Current_POS());
-		Debug_Camera_Set_Rotation(Player_Camera_Get_Yaw(), Player_Camera_Get_Pitch());
 	}
 
 	Light_Manager::GetInstance().Global_Light_Update(elapsed_time);
@@ -236,6 +238,11 @@ void Game_Draw()
 
 	// Draw UI
 	Game_UI_Draw();
+
+	if (Upgrade_System::GetInstance().Is_Active())
+	{
+		Upgrade_System::GetInstance().Draw();
+	}
 }
 
 bool Get_Debug_Mode_State()
@@ -261,13 +268,10 @@ void Game_Info_Reset()
 	Bullet_Manager::Instance().Reset();
 	Enemy_Spawner::GetInstance().Reset();
 	Resource_Manager::GetInstance().Reset();
+	Upgrade_System::GetInstance().Reset();
 
 	// 3. DJ List Reset
-	Current_Music_Triggers.clear();
-	for (int i = 0; i < DJ_Count; ++i)
-	{
-		Current_Music_Triggers.push_back(DJMAX[i]);
-	}
+	Weapon_System::GetInstance().Init();
 
 	// 4. Reset Game Time
 	Game_Play_Time = 0.0f;

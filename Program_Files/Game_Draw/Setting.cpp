@@ -449,9 +449,6 @@ void Setting_Update(double elapsed_time)
 
 void Setting_Draw()
 {
-    // Draw 3D Background
-    Main_Menu_BG_Draw();
-
     Direct3D_SetDepthEnable(false);
     Shader_Manager::GetInstance()->Begin2D();
 

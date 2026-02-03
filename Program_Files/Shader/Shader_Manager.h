@@ -52,6 +52,11 @@ struct UV_Parameter
     DirectX::XMFLOAT2 translation;
 };
 
+struct Bone_Buffer
+{
+    DirectX::XMFLOAT4X4 boneTransforms[256]; // Warning : Must Be Same To Skinning V.S Scale
+};
+
 class Shader_Manager
 {
 public:
@@ -98,6 +103,10 @@ public:
     // Shader b4
     void SetPointLight(int index, const DirectX::XMFLOAT3& worldPosition, float range, const DirectX::XMFLOAT4& color);
     void SetPointLightCount(int count);
+
+    // --- Methods for 3D Model Animation ---
+    void Begin3D_Skinning(Shader_Filter Filter = Shader_Filter::ANISOTROPIC);
+    void SetBones(const DirectX::XMFLOAT4X4* bones, int count); // Send Bone Data
 
 private:
     Shader_Manager() = default;
@@ -156,6 +165,10 @@ private:
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_sampler_Linear;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_sampler_AnisoTropic;
 
+    // --- 3D Model Animation Shader Resources ---
+    Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vsSkinning;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout>  m_ilSkinning;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>       m_cbBones;       // VS b3
 };
 
 #endif // SHADER_MANAGER_H

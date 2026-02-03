@@ -38,7 +38,10 @@ void Main_Game_Screen_Update()
 		break;
 
 	case Main_Screen::SELECT_GAME:
-		Main_Menu_Draw();
+		if (Game_Manager::GetInstance()->Get_Current_Game_Select_Screen() == Game_Select_Screen::GAME_MENU_SELECT)
+		{
+			Main_Menu_Draw();
+		}
 		Game_Select_Screen_Update();
 		break;
 

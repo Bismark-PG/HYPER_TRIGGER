@@ -8,6 +8,7 @@
 #ifndef WEAPON_SYSTEM_H
 #define WEAPON_SYSTEM_H
 #include <DirectXMath.h>
+#include <vector>
 #include "Weapon_Info.h" 
 
 class Weapon_System
@@ -20,13 +21,30 @@ public:
     }
 
     void Init();
-    void Update(double dt);
+    void Update(double elapsed_time);
+	void Clear();
 
-    bool Fire(const DirectX::XMFLOAT3& visualPos, const DirectX::XMFLOAT3& logicalPos, const DirectX::XMFLOAT3& dir);
+    bool Fire(const DirectX::XMFLOAT3& visualPos, const DirectX::XMFLOAT3& logicalPos, const DirectX::XMFLOAT3& dir, int damage);
+    void Reload();
+    
+    bool AddWeapon(WeaponType type);
 
-    void SwitchWeapon(WeaponType type);
+	// Get Current Weapon Info
+    bool HasWeapon() const;
+    const WeaponState& GetCurrentWeapon() const;
 
-    const WeaponInfo& GetCurrentWeaponInfo() const;
+	// Inventory Info
+    const std::deque<WeaponState>& GetInventory() const;
+
+    // Set BGM According to Weapon
+	void SyncBGM();            
+
+    // --- Level Bonus Operations ---
+    void Add_Ammo_Bonus(WeaponType type, int magBonus, int reserveBonus);
+
+    // --- Reloading System ---
+    bool Is_Reloading() const { return m_IsReloading; }
+    float Get_Reload_State() const;
 
 private:
     Weapon_System();
@@ -34,8 +52,21 @@ private:
     Weapon_System(const Weapon_System&) = delete;
     Weapon_System& operator=(const Weapon_System&) = delete;
 
-    WeaponInfo m_CurrentWeapon;
-    float      m_CoolDownTimer = 0.0f;
+	void CheckAmmoAndSwitch(); // Check Ammo And Switch Weapon If Needed
+
+	std::deque<WeaponState> m_WeaponQueue; // Max Size 3
+    float                   m_CoolDownTimer = 0.0f;
+    const size_t            m_MaxInventorySize = 3;
+
+	// Ammo Bonus For Each Weapon Type
+    int m_Current_Ammo_Bonus[4] = { 0, 0, 0, 0 };
+    int m_Reserve_Ammo_Bonus[4] = { 0, 0, 0, 0 };
+
+    bool  m_IsReloading = false;
+    float m_ReloadTimer = 0.0f;
+    float m_ReloadMaxTime = 0.0f;
+
+    void Ammo_Reload();
 };
 
 #endif // WEAPON_SYSTEM_H

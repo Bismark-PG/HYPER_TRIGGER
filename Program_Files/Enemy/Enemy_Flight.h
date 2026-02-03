@@ -141,7 +141,7 @@ private:
         XMStoreFloat3(&Dir, vDir);
 
         // Fire, Use Bullet Ray
-        Bullet_Manager::Instance().Fire(BulletType::RAY, MyPos, targetPos, Dir, BulletOwner::ENEMY);
+        Bullet_Manager::Instance().Fire(BulletType::RAY, MyPos, targetPos, Dir, m_Info.Bullet_Damage, BulletOwner::ENEMY);
 
         Audio_Manager::GetInstance()->Play_SFX("Enemy_Fire");
     }

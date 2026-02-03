@@ -10,6 +10,13 @@
 #include <DirectXMath.h>
 #include "Collision.h"
 
+enum class E_PlayerState
+{
+	IDLE,
+	WALK,
+	JUMP
+};
+
 void Player_Initialize(const DirectX::XMFLOAT3& First_POS, const DirectX::XMFLOAT3& First_Front);
 void Player_Finalize();
 
@@ -32,5 +39,9 @@ int Player_Get_MaxHP();
 // Level UP Logic For Prototype
 void Player_LevelUp();
 float Player_Get_Damage_Coefficient();
+
+void Player_Add_Damage_Bonus(float amount);
+void Player_Add_Speed_Bonus(float amount);
+void Player_Add_HP_Bonus(float amount);
 
 #endif // PLAYER_H

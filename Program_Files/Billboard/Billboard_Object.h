@@ -21,6 +21,7 @@ public:
     virtual void Activate(const DirectX::XMFLOAT3& pos);
     virtual void Deactivate();
     bool IsActive() const { return m_IsActive; }
+    void SetLifeTime(float time) { m_LifeTime = time; }
 
     // --- Main Logic ---
     virtual void Update(double dt);
@@ -33,6 +34,7 @@ public:
 protected:
     bool m_IsActive = false;
     int m_TexID = -1;
+    float m_LifeTime = -1.0f;
 
     // Transform
     DirectX::XMFLOAT3 m_Position;

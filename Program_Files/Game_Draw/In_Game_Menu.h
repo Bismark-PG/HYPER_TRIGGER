@@ -1,6 +1,6 @@
 /*==============================================================================
 
-    Manafe In Game Menu [In_Game_Menu.h]
+    Manage In Game Menu [In_Game_Menu.h]
 
     Author : Choi HyungJoon
 
@@ -25,6 +25,8 @@ void In_Game_Menu_Update(double elapsed_time);
 void In_Game_Menu_Draw();
 
 void In_Game_Menu_Reset();
+void Set_In_Game_Buffer(IN_GAME_BUFFER Buffer);
+IN_GAME_BUFFER Get_In_Game_Buffer();
 
 Mouse_Info Get_In_Game_Mouse_POS();
 
