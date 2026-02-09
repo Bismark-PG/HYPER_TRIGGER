@@ -208,7 +208,7 @@ void Main_Menu_Update(double elapsed_time)
 
 	bool Confirm_Input = (KeyLogger_IsTrigger(KK_ENTER) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_A));
 
-	if (State.leftButton && !Is_Mouse_Left_Clicked_Prev)
+	if (Is_Mouse_Click && !Is_Mouse_Left_Clicked_Prev)
 	{
 		if (Get_Main_Menu_Buffer() == Main_Select_Buffer::Start ||
 			Get_Main_Menu_Buffer() == Main_Select_Buffer::Setting ||
@@ -280,17 +280,17 @@ void Main_Menu_UI_Draw()
 	Direct3D_SetDepthEnable(false);
 	Shader_Manager::GetInstance()->Begin2D();
 
-	XMFLOAT4 A_Origin = Alpha_Origin;
-	XMFLOAT4 A_Half = Alpha_Half;
+	XMFLOAT4 XMF4_A_Origin = Alpha_Origin;
+	XMFLOAT4 XMF4_A_Half   = Alpha_Half;
 
 	Sprite_Draw(UI_Start, UI_X, Start_Y, UI_Width, UI_Height, A_Zero,
-		(M_Buffer == Main_Select_Buffer::Start) ? A_Origin : A_Half);
+		(M_Buffer == Main_Select_Buffer::Start) ? XMF4_A_Origin : XMF4_A_Half);
 
 	Sprite_Draw(UI_Set, UI_X, Settings_Y, UI_Width, UI_Height, A_Zero,
-		(M_Buffer == Main_Select_Buffer::Setting) ? A_Origin : A_Half);
+		(M_Buffer == Main_Select_Buffer::Setting) ? XMF4_A_Origin : XMF4_A_Half);
 
 	Sprite_Draw(UI_Exit, UI_X, Exit_Y, UI_Width, UI_Height, A_Zero,
-		(M_Buffer == Main_Select_Buffer::Exit) ? A_Origin : A_Half);
+		(M_Buffer == Main_Select_Buffer::Exit) ? XMF4_A_Origin : XMF4_A_Half);
 }
 
 Main_Select_Buffer Get_Main_Menu_Buffer()

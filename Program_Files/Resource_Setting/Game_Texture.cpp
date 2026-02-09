@@ -90,7 +90,9 @@ void Game_Texture_Load()
     Texture_M->Load("UI_Background", L"Resource/Texture/UI/UI_Background.png");
 
     //---------------------UI : In Game Texture---------------------//
-    Texture_M->Load("Aim", L"Resource/Texture/UI/UI_Aim.png");
+    Texture_M->Load("UI_Aim_Normal", L"Resource/Texture/UI/UI_Normal_Aim.png");
+    Texture_M->Load("UI_Aim_Zomm", L"Resource/Texture/UI/UI_Zoom_Aim.png");
+
     Texture_M->Load("HP_Bar", L"Resource/Texture/UI/UI_HP.png");
     Texture_M->Load("HP_Fill", L"Resource/Texture/UI/UI_HP_BAR.png");
     Texture_M->Load("EXP_Bar", L"Resource/Texture/UI/UI_EXP_L.png");
@@ -98,14 +100,19 @@ void Game_Texture_Load()
 
     //---------------------UI : Weapon Texture---------------------//
     Texture_M->Load("UI_Weapon_Box", L"Resource/Texture/UI/UI_Weapon.png");
-    Texture_M->Load("UI_Weapon_Drop_Box", L"Resource/Texture/UI/UI_Drop_Box.png");
     Texture_M->Load("UI_Ammo_Box", L"Resource/Texture/UI/UI_Long_Square.png");
 
-    Texture_M->Load("UI_HG", L"Resource/Texture/UI/UI_HG.png");
-    Texture_M->Load("UI_AR", L"Resource/Texture/UI/UI_AR.png");
-    Texture_M->Load("UI_MG", L"Resource/Texture/UI/UI_MG.png");
-    Texture_M->Load("UI_Grenade", L"Resource/Texture/UI/UI_Grenade.png");
+    Texture_M->Load("UI_HG", L"Resource/Texture/UI/UI_Drop_HG.png");
+    Texture_M->Load("UI_AR", L"Resource/Texture/UI/UI_Drop_AR.png");
+    Texture_M->Load("UI_MG", L"Resource/Texture/UI/UI_Drop_MG.png");
+    Texture_M->Load("UI_Grenade", L"Resource/Texture/UI/UI_Drop_G.png");
 
+    Texture_M->Load("UI_Drop_Box", L"Resource/Texture/UI/UI_Drop_Box.png");
+    Texture_M->Load("UI_Drop_Box_HG", L"Resource/Texture/UI/UI_Drop_HG.png");
+    Texture_M->Load("UI_Drop_Box_AR", L"Resource/Texture/UI/UI_Drop_AR.png");
+    Texture_M->Load("UI_Drop_Box_MG", L"Resource/Texture/UI/UI_Drop_MG.png");
+    Texture_M->Load("UI_Drop_Box_G", L"Resource/Texture/UI/UI_Drop_G.png");
+    
     Texture_M->Load("Reload", L"Resource/Texture/UI/UI_Reload.png");
 
     //---------------------UI : Main Menu Texture---------------------//
@@ -126,6 +133,12 @@ void Game_Texture_Load()
     Texture_M->Load("UI_Sensitivity", L"Resource/Texture/UI/Settings_Sensitivity.png");
     Texture_M->Load("UI_Window_Mode", L"Resource/Texture/UI/Settings_W_Mode_Fixed.png");
     Texture_M->Load("UI_Full_Screen_Mode", L"Resource/Texture/UI/Settings_FS_Mode.png");
+    Texture_M->Load("UI_Run_Toggle", L"Resource/Texture/UI/Settings_Run_Toggle.png");
+    Texture_M->Load("UI_View", L"Resource/Texture/UI/Settings_View.png");
+
+    Texture_M->Load("UI_Toggle_Check", L"Resource/Texture/UI/Settings_Toggle_Check.png");
+    Texture_M->Load("UI_Toggle_L", L"Resource/Texture/UI/Settings_Toggle_L.png");
+    Texture_M->Load("UI_Toggle_R", L"Resource/Texture/UI/Settings_Toggle_R.png");
 
     //-----------------------UI : Number Texture-----------------------//
     Texture_M->Load("UI_Num_MIN", L"Resource/Texture/UI/Num/UI_Num_Min.png");

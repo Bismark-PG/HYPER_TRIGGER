@@ -20,42 +20,29 @@ using namespace DirectX;
 using namespace PALETTE;
 
 //----------------UI Texture----------------//
-static int Num_Arr[11];
-static int NOW_BGM_TexID;
-static int NOW_SFX_TexID;
-
-static int UI_Button_L = -1;
-static int UI_Button_R = -1;
-static int UI_BGM = -1;
-static int UI_SFX = -1;
-static int UI_Sens_Text = -1;
-static int UI_Back = -1;
-static int UI_Background = -1;
-static int UI_Pixel_White = -1;
+static int UI_Background = -1, UI_Pixel_White = -1;
+static int Num_Arr[11], NOW_BGM_TexID, NOW_SFX_TexID;
+static int UI_Run_Toggle = -1, UI_View = -1, UI_Toggle_Box_Idle = -1, UI_Toggle_Box_Check = -1;
+static int UI_Toggle_Box_L = -1, UI_Toggle_Box_R = -1, UI_Button_L = -1, UI_Button_R = -1;
+static int UI_BGM = -1, UI_SFX = -1,UI_Sens_Text = -1, UI_Back = -1;
 
 //----------------------POS----------------------//
 static float BG_X, BG_Y, BG_W, BG_H;
 
-static float UI_X, UI_H, UI_W;
-static float UI_Sens_Y;
-static float UI_BGM_Y;
-static float UI_SFX_Y;
+static float UI_Sens_X, UI_Sens_Y, UI_H, UI_W;
 
-static float UI_Back_X;
-static float UI_Back_Y;
-
-static float UI_Value_X;   
-
-static float NUM_X;
-static float L_BUTTON_X;
-static float R_BUTTON_X;
-
+static float UI_Value_X; 
 static float Slider_Bar_X, Slider_Bar_Y, Slider_Bar_W, Slider_Bar_H;
 static float Slider_Box_X, Slider_Box_Y, Slider_Box_Size;
 
-static float NUM_WIDTH;
-static float NUM_HEIGHT;
-static float NUM_MAX_WIDTH;
+static float UI_Sprint_X, UI_Sprint_BOX_X, UI_View_X, UI_View_BOX_X, UI_Toggle_Y;
+
+static float UI_BGM_X, UI_SFX_X, UI_Sound_Y;
+static float BGM_NUM_X, SFX_NUM_X;
+static float BGM_L_BUTTON_X, BGM_R_BUTTON_X;
+static float SFX_L_BUTTON_X, SFX_R_BUTTON_X;
+
+static float UI_Back_X, UI_Back_Y;
 
 //----------------State & Data----------------//
 // State Info
@@ -71,6 +58,10 @@ static const float Sens_Scale = 0.0005f;
 static const float Sens_Min = 0.001f;
 static const float Sens_Max = 0.1f;
 static bool Is_Slider_Dragging = false;
+
+// Setting Toggle
+static bool Is_Sprint_Toggle = false;
+static bool Is_Right_View = false;
 
 static bool Reset_KeyLogger = false;
 
@@ -98,28 +89,24 @@ void Setting_Initialize()
     Mouse_Setting.Prev_X = Screen_W * 0.5f;
     Mouse_Setting.Prev_Y = Screen_H * 0.5f;
 
+    // Backgound
     BG_W = Screen_W * 0.8f;
     BG_H = Screen_H * 0.8f;
     BG_X = (Screen_W - BG_W) * 0.5f;
     BG_Y = (Screen_H - BG_H) * 0.5f;
 
-    UI_X = BG_X + BG_W * 0.15f;
+    // UI
     UI_H = BG_H * 0.1f;
     UI_W = UI_H * 4.0f;
-    UI_Back_X = (Screen_W * 0.5f) - (UI_W * 0.5f);
-    UI_Value_X = BG_X + BG_W * 0.65f;
 
+    // ---------------------------------------------------
+    //                   Sensitivity
+    // ---------------------------------------------------
+    UI_Sens_X = BG_X + BG_W * 0.15f;
     UI_Sens_Y = BG_Y + BG_H * 0.2f;
-    UI_BGM_Y = BG_Y + BG_H * 0.4f;
-    UI_SFX_Y = BG_Y + BG_H * 0.6f;
-    UI_Back_Y = BG_Y + BG_H * 0.8f;
-
-    NUM_X = UI_Value_X - (UI_H * 0.5f);
-    float Arrow_Gap = UI_H * 1.5f;
-    L_BUTTON_X = UI_Value_X - Arrow_Gap - (UI_H * 0.5f);
-    R_BUTTON_X = UI_Value_X + Arrow_Gap - (UI_H * 0.5f);
 
     // Slider Setup
+    UI_Value_X = BG_X + BG_W * 0.65f;
     Slider_Bar_W = BG_W * 0.35f;
     Slider_Bar_H = UI_H * 0.2f;
     Slider_Bar_X = UI_Value_X - (Slider_Bar_W * 0.5f);
@@ -129,10 +116,56 @@ void Setting_Initialize()
     Slider_Box_X = Slider_Bar_X + (Slider_Box_Size * 0.5f);
     Slider_Box_Y = Slider_Bar_Y + (Slider_Bar_H - Slider_Box_Size) * 0.5f;
 
+    // ---------------------------------------------------
+    //                      Toggle
+    // ---------------------------------------------------
+    UI_Toggle_Y = BG_Y + BG_H * 0.4f;
+
+    // Left Center (25% Position)
+    float Center_Left_X = BG_X + (BG_W * 0.25f);
+    // Right Center (75% Position)
+    float Center_Right_X = BG_X + (BG_W * 0.75f);
+
+    // Sprint (Left Area)
+    UI_Sprint_X = Center_Left_X - (UI_W * 0.6f); // Text
+    UI_Sprint_BOX_X = Center_Left_X + (UI_H * 1.5f); // Box
+    // View (Right Area)
+    UI_View_X = Center_Right_X - (UI_W * 0.6f); // Text
+    UI_View_BOX_X = Center_Right_X + (UI_H * 1.5f); // Box
+
+    // ---------------------------------------------------
+    //                      Sound
+    // ---------------------------------------------------
+    UI_Sound_Y = BG_Y + BG_H * 0.6f;
+    float Arrow_Gap = UI_H * 1.2f;
+
+    // BGM (Left Area)
+    UI_BGM_X = Center_Left_X - (UI_W * 0.5f);
+    float BGM_Control_Center = Center_Left_X + (UI_H * 2.0f);
+
+    BGM_NUM_X = BGM_Control_Center;
+    BGM_L_BUTTON_X = BGM_Control_Center - Arrow_Gap;
+    BGM_R_BUTTON_X = BGM_Control_Center + Arrow_Gap;
+
+    // SFX (Right Area)
+    UI_SFX_X = Center_Right_X - (UI_W * 0.5f);
+    float SFX_Control_Center = Center_Right_X + (UI_H * 2.0f);
+
+    SFX_NUM_X = SFX_Control_Center;
+    SFX_L_BUTTON_X = SFX_Control_Center - Arrow_Gap;
+    SFX_R_BUTTON_X = SFX_Control_Center + Arrow_Gap;
+
+    // Back
+    UI_Back_X = (Screen_W * 0.5f) - (UI_W * 0.5f);
+    UI_Back_Y = BG_Y + BG_H * 0.8f;
+
     Reset_KeyLogger = false;
 
     Current_Sensitivity = Get_Mouse_Sensitivity();
     Is_Slider_Dragging = false;
+
+    Is_Sprint_Toggle = false;
+    Is_Right_View = false;
 }
 
 void Setting_Finalize()
@@ -141,6 +174,8 @@ void Setting_Finalize()
 
 void Setting_Update(double elapsed_time)
 {
+    float dt = static_cast<float>(elapsed_time);
+
     if (Reset_KeyLogger)
     {
         if (KeyLogger_IsAnyKeyReleased() || XKeyLogger_IsAnyPadReleased())
@@ -165,12 +200,17 @@ void Setting_Update(double elapsed_time)
 
     Is_Mouse_Left_Clicked_Prev = State.leftButton;
 
+    // ==============================================================================================
+     //                                  Menu Navigation (None State)
+     // ==============================================================================================
     if (Get_Setting_State() == SOUND_SETTING_STATE::NONE)
     {
+        // 1. Mouse Hover Check
         if (Mouse_Movement)
         {
-            if ((Is_Mouse_In_RECT(Mouse_Setting.X, Mouse_Setting.Y, UI_X, UI_Sens_Y, UI_W, UI_H)) ||
-                (Is_Mouse_In_RECT(Mouse_Setting.X, Mouse_Setting.Y, Slider_Bar_X, Slider_Bar_Y, Slider_Bar_W, Slider_Bar_H)))
+            // Row 1: Sensitivity
+            if ((Is_Mouse_In_RECT(Mouse_X, Mouse_Y, UI_Sens_X, UI_Sens_Y, UI_W, UI_H)) ||
+                (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, Slider_Bar_X, Slider_Bar_Y, Slider_Bar_W, Slider_Bar_H)))
             {
                 if (Get_Setting_Buffer() != SETTING_BUFFER::SENSITIVITY)
                 {
@@ -178,23 +218,44 @@ void Setting_Update(double elapsed_time)
                     Update_Setting_Buffer(SETTING_BUFFER::SENSITIVITY);
                 }
             }
-            else if (Is_Mouse_In_RECT(Mouse_Setting.X, Mouse_Setting.Y, UI_X, UI_BGM_Y, UI_W, UI_H))
+            // Row 2: Sprint (Left)
+            else if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, UI_Sprint_X, UI_Toggle_Y, UI_W + UI_H * 2, UI_H))
             {
-                if (Get_Setting_Buffer() != SETTING_BUFFER::BGM)
+                if (Get_Setting_Buffer() != SETTING_BUFFER::SPRINT_TOGGLE)
                 {
                     Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                    Update_Setting_Buffer(SETTING_BUFFER::BGM);
+                    Update_Setting_Buffer(SETTING_BUFFER::SPRINT_TOGGLE);
                 }
             }
-            else if (Is_Mouse_In_RECT(Mouse_Setting.X, Mouse_Setting.Y, UI_X, UI_SFX_Y, UI_W, UI_H))
+            // Row 2: View (Right)
+            else if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, UI_View_X, UI_Toggle_Y, UI_W + UI_H * 2, UI_H))
             {
-                if (Get_Setting_Buffer() != SETTING_BUFFER::SFX)
+                if (Get_Setting_Buffer() != SETTING_BUFFER::SHOULDER_VIEW)
                 {
                     Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                    Update_Setting_Buffer(SETTING_BUFFER::SFX);
+                    Update_Setting_Buffer(SETTING_BUFFER::SHOULDER_VIEW);
                 }
             }
-            else if (Is_Mouse_In_RECT(Mouse_Setting.X, Mouse_Setting.Y, UI_Back_X, UI_Back_Y, UI_W, UI_H))
+            // Row 3: BGM (Left)
+            else if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, UI_BGM_X, UI_Sound_Y, UI_W + UI_H * 4, UI_H))
+            {
+                if (Get_Setting_Buffer() != SETTING_BUFFER::BGM_SETTING)
+                {
+                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                    Update_Setting_Buffer(SETTING_BUFFER::BGM_SETTING);
+                }
+            }
+            // Row 3: SFX (Right)
+            else if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, UI_SFX_X, UI_Sound_Y, UI_W + UI_H * 4, UI_H))
+            {
+                if (Get_Setting_Buffer() != SETTING_BUFFER::SFX_SETTING)
+                {
+                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                    Update_Setting_Buffer(SETTING_BUFFER::SFX_SETTING);
+                }
+            }
+            // Row 4: Back
+            else if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, UI_Back_X, UI_Back_Y, UI_W, UI_H))
             {
                 if (Get_Setting_Buffer() != SETTING_BUFFER::SETTING_BACK)
                 {
@@ -202,65 +263,88 @@ void Setting_Update(double elapsed_time)
                     Update_Setting_Buffer(SETTING_BUFFER::SETTING_BACK);
                 }
             }
-            else
-            {
-                Update_Setting_Buffer(SETTING_BUFFER::SETTING_WAIT);
-            }
         }
 
+        // 2. Keyboard Navigation (Up/Down/Left/Right)
+
+        // UP Input
         if (KeyLogger_IsTrigger(KK_W) || KeyLogger_IsTrigger(KK_UP) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_UP))
         {
-            if (Get_Setting_Buffer() == SETTING_BUFFER::SETTING_NONE || Get_Setting_Buffer() == SETTING_BUFFER::SETTING_WAIT)
+            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            switch (Get_Setting_Buffer())
             {
-                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                Update_Setting_Buffer(SETTING_BUFFER::SENSITIVITY);
-            }
-            else
-            {
-                if (Get_Setting_Buffer() == SETTING_BUFFER::BGM)
-                {
-                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                    Update_Setting_Buffer(SETTING_BUFFER::SENSITIVITY);
-                }
-                else if (Get_Setting_Buffer() == SETTING_BUFFER::SFX)
-                {
-                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                    Update_Setting_Buffer(SETTING_BUFFER::BGM);
-                }
-                else if (Get_Setting_Buffer() == SETTING_BUFFER::SETTING_BACK)
-                {
-                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                    Update_Setting_Buffer(SETTING_BUFFER::SFX);
-                }
+            case SETTING_BUFFER::SETTING_NONE:
+            case SETTING_BUFFER::SETTING_WAIT:
+                Update_Setting_Buffer(SETTING_BUFFER::SENSITIVITY); break;
+
+            case SETTING_BUFFER::SPRINT_TOGGLE: // Row 2 Left -> Row 1
+            case SETTING_BUFFER::SHOULDER_VIEW: // Row 2 Right -> Row 1
+                Update_Setting_Buffer(SETTING_BUFFER::SENSITIVITY); break;
+
+            case SETTING_BUFFER::BGM_SETTING:   // Row 3 Left -> Row 2 Left
+                Update_Setting_Buffer(SETTING_BUFFER::SPRINT_TOGGLE); break;
+
+            case SETTING_BUFFER::SFX_SETTING:   // Row 3 Right -> Row 2 Right
+                Update_Setting_Buffer(SETTING_BUFFER::SHOULDER_VIEW); break;
+
+            case SETTING_BUFFER::SETTING_BACK:  // Row 4 -> Row 3 Left (Default)
+                Update_Setting_Buffer(SETTING_BUFFER::BGM_SETTING); break;
             }
         }
+        // DOWN Input
         else if (KeyLogger_IsTrigger(KK_S) || KeyLogger_IsTrigger(KK_DOWN) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_DOWN))
         {
-            if (Get_Setting_Buffer() == SETTING_BUFFER::SETTING_NONE || Get_Setting_Buffer() == SETTING_BUFFER::SETTING_WAIT)
+            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            switch (Get_Setting_Buffer())
+            {
+            case SETTING_BUFFER::SETTING_NONE:
+            case SETTING_BUFFER::SETTING_WAIT:
+                Update_Setting_Buffer(SETTING_BUFFER::SETTING_BACK); break;
+
+            case SETTING_BUFFER::SENSITIVITY:   // Row 1 -> Row 2 Left (Default)
+                Update_Setting_Buffer(SETTING_BUFFER::SPRINT_TOGGLE); break;
+
+            case SETTING_BUFFER::SPRINT_TOGGLE: // Row 2 Left -> Row 3 Left
+                Update_Setting_Buffer(SETTING_BUFFER::BGM_SETTING); break;
+
+            case SETTING_BUFFER::SHOULDER_VIEW: // Row 2 Right -> Row 3 Right
+                Update_Setting_Buffer(SETTING_BUFFER::SFX_SETTING); break;
+
+            case SETTING_BUFFER::BGM_SETTING:   // Row 3 -> Row 4
+            case SETTING_BUFFER::SFX_SETTING:
+                Update_Setting_Buffer(SETTING_BUFFER::SETTING_BACK); break;
+            }
+        }
+        // LEFT Input
+        else if (KeyLogger_IsTrigger(KK_A) || KeyLogger_IsTrigger(KK_LEFT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_LEFT))
+        {
+            if (Get_Setting_Buffer() == SETTING_BUFFER::SHOULDER_VIEW)
             {
                 Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                Update_Setting_Buffer(SETTING_BUFFER::SETTING_BACK);
+                Update_Setting_Buffer(SETTING_BUFFER::SPRINT_TOGGLE);
             }
-            else
+            else if (Get_Setting_Buffer() == SETTING_BUFFER::SFX_SETTING)
             {
-                if (Get_Setting_Buffer() == SETTING_BUFFER::SENSITIVITY)
-                {
-                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                    Update_Setting_Buffer(SETTING_BUFFER::BGM);
-                }
-                else if (Get_Setting_Buffer() == SETTING_BUFFER::BGM)
-                {
-                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                    Update_Setting_Buffer(SETTING_BUFFER::SFX);
-                }
-                else if (Get_Setting_Buffer() == SETTING_BUFFER::SFX)
-                {
-                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-                    Update_Setting_Buffer(SETTING_BUFFER::SETTING_BACK);
-                }
+                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Update_Setting_Buffer(SETTING_BUFFER::BGM_SETTING);
+            }
+        }
+        // RIGHT Input
+        else if (KeyLogger_IsTrigger(KK_D) || KeyLogger_IsTrigger(KK_RIGHT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_RIGHT))
+        {
+            if (Get_Setting_Buffer() == SETTING_BUFFER::SPRINT_TOGGLE)
+            {
+                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Update_Setting_Buffer(SETTING_BUFFER::SHOULDER_VIEW);
+            }
+            else if (Get_Setting_Buffer() == SETTING_BUFFER::BGM_SETTING)
+            {
+                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Update_Setting_Buffer(SETTING_BUFFER::SFX_SETTING);
             }
         }
 
+        // 3. Selection Logic (Confirm)
         if (Confirm)
         {
             bool Is_Valid_Selection = (Get_Setting_Buffer() != SETTING_BUFFER::SETTING_NONE && Get_Setting_Buffer() != SETTING_BUFFER::SETTING_WAIT);
@@ -275,11 +359,19 @@ void Setting_Update(double elapsed_time)
                     Update_Sound_Setting_State(SOUND_SETTING_STATE::SENSITIVITY_SETTING);
                     break;
 
-                case SETTING_BUFFER::BGM:
+                case SETTING_BUFFER::SPRINT_TOGGLE:
+                    Update_Sound_Setting_State(SOUND_SETTING_STATE::SPRINT_SETTING);
+                    break;
+
+                case SETTING_BUFFER::SHOULDER_VIEW:
+                    Update_Sound_Setting_State(SOUND_SETTING_STATE::VIEW_SETTING);
+                    break;
+
+                case SETTING_BUFFER::BGM_SETTING:
                     Update_Sound_Setting_State(SOUND_SETTING_STATE::BGM_SETTING);
                     break;
 
-                case SETTING_BUFFER::SFX:
+                case SETTING_BUFFER::SFX_SETTING:
                     Update_Sound_Setting_State(SOUND_SETTING_STATE::SFX_SETTING);
                     break;
 
@@ -292,157 +384,210 @@ void Setting_Update(double elapsed_time)
                     {
                         Game_Manager::GetInstance()->Update_Sub_Screen(Sub_Screen::S_DONE);
                     }
-
                     Update_Setting_Buffer(SETTING_BUFFER::SETTING_NONE);
                     break;
                 }
             }
         }
     }
-   else if (Get_Setting_State() == SOUND_SETTING_STATE::SENSITIVITY_SETTING)
-   {
-       if (KeyLogger_IsTrigger(KK_BACK) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_B) || State.rightButton || Confirm)
-       {
-           bool Clicked_Slider = false;
-
-           if (Click_Trigger)
-           {
-               if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, Slider_Bar_X - 10, Slider_Bar_Y - 20, Slider_Bar_W + 20, UI_H))
-               {
-                   Clicked_Slider = true;
-               }
-           }
-
-           if (!Clicked_Slider)
-           {
-               Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
-               Update_Sound_Setting_State(SOUND_SETTING_STATE::NONE);
-               Is_Slider_Dragging = false;
-               return;
-           }
-       }
-
-       // Set Sensitivity (Keyboard)
-       if (KeyLogger_IsTrigger(KK_A) || KeyLogger_IsTrigger(KK_LEFT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_LEFT))
-       {
-           Current_Sensitivity -= Sens_Scale;
-       }
-       else if (KeyLogger_IsTrigger(KK_D) || KeyLogger_IsTrigger(KK_RIGHT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_RIGHT))
-       {
-           Current_Sensitivity += Sens_Scale;
-       }
-
-       // Cheaack Mouse Trigger
-       if (Click_Trigger && Is_Mouse_In_RECT(Mouse_X, Mouse_Y, Slider_Bar_X - 10, Slider_Bar_Y - 20, Slider_Bar_W + 20, UI_H))
-       {
-           Is_Slider_Dragging = true;
-       }
-
-       // Set Sensitivity
-       if (Is_Slider_Dragging && KeyLogger_IsMousePressed(Mouse_Button::LEFT))
-       {
-           float newRatio = (Mouse_X - Slider_Bar_X) / Slider_Bar_W;
-           newRatio = std::max(0.0f, std::min(newRatio, 1.0f));
-           Current_Sensitivity = Sens_Min + newRatio * (Sens_Max - Sens_Min);
-       }
-       else
-       {
-           Is_Slider_Dragging = false;
-       }
-
-       // Set Min Max
-       Current_Sensitivity = std::max(Sens_Min, std::min(Current_Sensitivity, Sens_Max));
-       Set_Mouse_Sensitivity(Current_Sensitivity);
-
-       Debug::D_Out << "[Setting} Now Mouse Sensitivity : " << Current_Sensitivity << std::endl;
-    }
-   else if (Get_Setting_State() == SOUND_SETTING_STATE::BGM_SETTING || Get_Setting_State() == SOUND_SETTING_STATE::SFX_SETTING)
-   {
-        // 1. Get Now Mode
-        bool Is_BGM_Mode = (Get_Setting_State() == SOUND_SETTING_STATE::BGM_SETTING);
-
-        // 2. Data Set
-        int currentVal = static_cast<int>(Is_BGM_Mode ? Get_BGM_Scale_Buffer() : Get_SFX_Scale_Buffer());
-        float Target_UI_Y = Is_BGM_Mode ? UI_BGM_Y : UI_SFX_Y;
-
-        // --- Back / Cancel Logic ---
-        if (KeyLogger_IsTrigger(KK_BACK) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_B) || State.rightButton || Confirm)
+    // ==============================================================================================
+    //                                  Edit Modes (Inner Logic)
+    // ==============================================================================================
+    else
+    {
+        // Global Back Logic for All Edit Modes
+        if (KeyLogger_IsTrigger(KK_BACK) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_B) || State.rightButton)
         {
-            bool Clicked_Arrow = false;
+            Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
+            Update_Sound_Setting_State(SOUND_SETTING_STATE::NONE);
+            Is_Slider_Dragging = false;
+            return;
+        }
+
+        switch (Get_Setting_State())
+        {
+            // ------------------ Sensitivity Edit ------------------
+        case SOUND_SETTING_STATE::SENSITIVITY_SETTING:
+        {
+            // Exit if clicked outside slider area
             if (Click_Trigger)
             {
-                if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, L_BUTTON_X, Target_UI_Y, UI_H, UI_H))
+                if (!Is_Mouse_In_RECT(Mouse_X, Mouse_Y, Slider_Bar_X - 10, Slider_Bar_Y - 20, Slider_Bar_W + 20, UI_H))
                 {
-                    Clicked_Arrow = true;
-                }
-                else if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, R_BUTTON_X, Target_UI_Y, UI_H, UI_H))
-                {
-                    Clicked_Arrow = true;
+                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
+                    Update_Sound_Setting_State(SOUND_SETTING_STATE::NONE);
+                    Is_Slider_Dragging = false;
+                    return;
                 }
             }
 
-            if (!Clicked_Arrow)
+            // Keyboard Adjustment
+            if (KeyLogger_IsTrigger(KK_A) || KeyLogger_IsTrigger(KK_LEFT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_LEFT))
             {
-                Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
-                Update_Sound_Setting_State(SOUND_SETTING_STATE::NONE);
-                return;
+                Current_Sensitivity -= Sens_Scale;
+            }
+            else if (KeyLogger_IsTrigger(KK_D) || KeyLogger_IsTrigger(KK_RIGHT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_RIGHT))
+            {
+                Current_Sensitivity += Sens_Scale;
+            }
+
+            // Mouse Dragging
+            if (Click_Trigger && Is_Mouse_In_RECT(Mouse_X, Mouse_Y, Slider_Bar_X - 10, Slider_Bar_Y - 20, Slider_Bar_W + 20, UI_H))
+            {
+                Is_Slider_Dragging = true;
+            }
+
+            if (Is_Slider_Dragging && KeyLogger_IsMousePressed(Mouse_Button::LEFT))
+            {
+                float newRatio = (Mouse_X - Slider_Bar_X) / Slider_Bar_W;
+                newRatio = std::max(0.0f, std::min(newRatio, 1.0f));
+                Current_Sensitivity = Sens_Min + newRatio * (Sens_Max - Sens_Min);
+            }
+            else
+            {
+                Is_Slider_Dragging = false;
+            }
+
+            // Clamp & Apply
+            Current_Sensitivity = std::max(Sens_Min, std::min(Current_Sensitivity, Sens_Max));
+            Set_Mouse_Sensitivity(Current_Sensitivity);
+        }
+        break;
+
+        // ------------------ Sprint Edit (Toggle) ------------------
+        case SOUND_SETTING_STATE::SPRINT_SETTING:
+        {
+            // Toggle Logic (Enter or Click Box)
+            if (Confirm)
+            {
+                // Box Click Check
+                if (Click_Trigger)
+                {
+                    if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, UI_Sprint_BOX_X, UI_Toggle_Y, UI_H, UI_H))
+                    {
+                        Is_Sprint_Toggle = !Is_Sprint_Toggle;
+                        Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                    }
+                    else
+                    {
+                        // Clicked outside -> Exit
+                        Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
+                        Update_Sound_Setting_State(SOUND_SETTING_STATE::NONE);
+                    }
+                }
+                else // Enter Key
+                {
+                    Is_Sprint_Toggle = !Is_Sprint_Toggle;
+                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                }
             }
         }
+        break;
 
-        // --- Value Change Logic ---
-        bool Changed = false;
-
-        // Keyboard Input
-        if (KeyLogger_IsTrigger(KK_A) || KeyLogger_IsTrigger(KK_LEFT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_LEFT))
+        // ------------------ View Edit (Swap L/R) ------------------
+        case SOUND_SETTING_STATE::VIEW_SETTING:
         {
-            currentVal--;
-            Changed = true;
-            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            // Toggle Logic
+            if (Confirm)
+            {
+                if (Click_Trigger)
+                {
+                    if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, UI_View_BOX_X, UI_Toggle_Y, UI_H, UI_H))
+                    {
+                        Is_Right_View = !Is_Right_View;
+                        Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                    }
+                    else
+                    {
+                        Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
+                        Update_Sound_Setting_State(SOUND_SETTING_STATE::NONE);
+                    }
+                }
+                else // Enter / Arrow Keys
+                {
+                    // Allow Arrows to swap too
+                    Is_Right_View = !Is_Right_View;
+                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                }
+            }
+            // Arrow Keys for View Swap
+            else if (KeyLogger_IsTrigger(KK_A) || KeyLogger_IsTrigger(KK_LEFT) || KeyLogger_IsTrigger(KK_D) || KeyLogger_IsTrigger(KK_RIGHT))
+            {
+                Is_Right_View = !Is_Right_View;
+                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            }
         }
-        else if (KeyLogger_IsTrigger(KK_D) || KeyLogger_IsTrigger(KK_RIGHT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_RIGHT))
-        {
-            currentVal++;
-            Changed = true;
-            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
-        }
+        break;
 
-        // Mouse Input
-        if (Click_Trigger)
+        // ------------------ BGM & SFX Edit ------------------
+        case SOUND_SETTING_STATE::BGM_SETTING:
+        case SOUND_SETTING_STATE::SFX_SETTING:
         {
-            if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, L_BUTTON_X, Target_UI_Y, UI_H, UI_H)) // Left Arrow
+            bool Is_BGM_Mode = (Get_Setting_State() == SOUND_SETTING_STATE::BGM_SETTING);
+
+            // Set Target Vars
+            int currentVal = static_cast<int>(Is_BGM_Mode ? Get_BGM_Scale_Buffer() : Get_SFX_Scale_Buffer());
+            float L_Btn_X = Is_BGM_Mode ? BGM_L_BUTTON_X : SFX_L_BUTTON_X;
+            float R_Btn_X = Is_BGM_Mode ? BGM_R_BUTTON_X : SFX_R_BUTTON_X;
+
+            bool Changed = false;
+
+            // Keyboard
+            if (KeyLogger_IsTrigger(KK_A) || KeyLogger_IsTrigger(KK_LEFT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_LEFT))
             {
                 currentVal--;
                 Changed = true;
                 Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
             }
-            else if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, R_BUTTON_X, Target_UI_Y, UI_H, UI_H)) // Right Arrow
+            else if (KeyLogger_IsTrigger(KK_D) || KeyLogger_IsTrigger(KK_RIGHT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_RIGHT))
             {
                 currentVal++;
                 Changed = true;
                 Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
             }
+
+            // Mouse
+            if (Click_Trigger)
+            {
+                if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, L_Btn_X, UI_Sound_Y, UI_H, UI_H))
+                {
+                    currentVal--;
+                    Changed = true;
+                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                }
+                else if (Is_Mouse_In_RECT(Mouse_X, Mouse_Y, R_Btn_X, UI_Sound_Y, UI_H, UI_H))
+                {
+                    currentVal++;
+                    Changed = true;
+                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                }
+                else
+                {
+                    // Clicked outside arrows -> Exit
+                    Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
+                    Update_Sound_Setting_State(SOUND_SETTING_STATE::NONE);
+                }
+            }
+
+            // Apply
+            if (Changed)
+            {
+                currentVal = std::max(0, std::min(currentVal, 10));
+                float vol = static_cast<float>(currentVal) / 10.0f;
+
+                if (Is_BGM_Mode)
+                {
+                    Update_BGM_Scale_Buffer(static_cast<SOUND_SCALE_BUFFER>(currentVal));
+                    Audio_Manager::GetInstance()->Set_Target_BGM_Volume(vol);
+                }
+                else
+                {
+                    Update_SFX_Scale_Buffer(static_cast<SOUND_SCALE_BUFFER>(currentVal));
+                    Audio_Manager::GetInstance()->Set_Target_SFX_Volume(vol);
+                }
+            }
         }
-
-        // --- Apply Changes ---
-        if (Changed)
-        {
-            // Set Volume Range (0 ~ 10)
-            currentVal = std::max(0, std::min(currentVal, 10));
-
-            // Get Volume (0.0 ~ 1.0)
-            float vol = static_cast<float>(currentVal) / 10.0f;
-
-            // Call Audio Set Logic
-            if (Is_BGM_Mode)
-            {
-                Update_BGM_Scale_Buffer(static_cast<SOUND_SCALE_BUFFER>(currentVal));
-                Audio_Manager::GetInstance()->Set_Target_BGM_Volume(vol);
-            }
-            else
-            {
-                Update_SFX_Scale_Buffer(static_cast<SOUND_SCALE_BUFFER>(currentVal));
-                Audio_Manager::GetInstance()->Set_Target_SFX_Volume(vol);
-            }
+        break;
         }
     }
 }
@@ -463,51 +608,75 @@ void Setting_Draw()
     // 1. Sensitivity Slider
     // ------------------------------------------------------------
     bool Is_Sens_Focus = (Get_Setting_Buffer() == SETTING_BUFFER::SENSITIVITY || Get_Setting_State() == SOUND_SETTING_STATE::SENSITIVITY_SETTING);
-    Sprite_Draw(UI_Sens_Text, UI_X, UI_Sens_Y, UI_W, UI_H, 0.0f, Is_Sens_Focus ? Select_Color : Normal_Color);
+    // Draw Text (Needs Texture)
+    if (UI_Sens_Text != -1)
+        Sprite_Draw(UI_Sens_Text, UI_Sens_X, UI_Sens_Y, UI_W, UI_H, 0.0f, Is_Sens_Focus ? Select_Color : Normal_Color);
 
     // Slider Bar & Box
     Sprite_Draw(UI_Pixel_White, Slider_Bar_X, Slider_Bar_Y, Slider_Bar_W, Slider_Bar_H, 0.0f, Is_Sens_Focus ? Select_Color : Normal_Color);
     Sprite_Draw(UI_Pixel_White, Slider_Box_X, Slider_Box_Y, Slider_Box_Size, Slider_Box_Size, 45.0f, Is_Sens_Focus ? Select_Color : Light_Gray);
 
     // ------------------------------------------------------------
-    // 2. BGM Setting (UI + Arrows + Number)
+    // 2. Row 2: Toggle (Sprint & View)
     // ------------------------------------------------------------
-    bool Is_BGM_Focus = (Get_Setting_Buffer() == SETTING_BUFFER::BGM || Get_Setting_State() == SOUND_SETTING_STATE::BGM_SETTING);
+
+    // A. Sprint (Left)
+    bool Is_Sprint_Focus = (Get_Setting_Buffer() == SETTING_BUFFER::SPRINT_TOGGLE || Get_Setting_State() == SOUND_SETTING_STATE::SPRINT_SETTING);
+    XMFLOAT4 Sprint_Color = Is_Sprint_Focus ? Select_Color : Normal_Color;
+
+    // Text (Sprint) - If texture missing, use temp or skip
+    if (UI_Run_Toggle != -1)
+        Sprite_Draw(UI_Run_Toggle, UI_Sprint_X, UI_Toggle_Y, UI_W, UI_H, 0.0f, Sprint_Color);
+
+    // Check Box
+    int Sprint_Tex = Is_Sprint_Toggle ? UI_Toggle_Box_Check : UI_Toggle_Box_Idle;
+    Sprite_Draw(Sprint_Tex, UI_Sprint_BOX_X, UI_Toggle_Y, UI_H, UI_H, 0.0f, Sprint_Color);
+
+    // B. View (Right)
+    bool Is_View_Focus = (Get_Setting_Buffer() == SETTING_BUFFER::SHOULDER_VIEW || Get_Setting_State() == SOUND_SETTING_STATE::VIEW_SETTING);
+    XMFLOAT4 View_Color = Is_View_Focus ? Select_Color : Normal_Color;
+
+    // Text (View)
+    if (UI_View != -1)
+        Sprite_Draw(UI_View, UI_View_X, UI_Toggle_Y, UI_W, UI_H, 0.0f, View_Color);
+
+    // View Icon (L or R)
+    int View_Tex = Is_Right_View ? UI_Toggle_Box_R : UI_Toggle_Box_L;
+    Sprite_Draw(View_Tex, UI_View_BOX_X, UI_Toggle_Y, UI_H, UI_H, 0.0f, View_Color);
+
+
+    // ------------------------------------------------------------
+    // 3. Row 3: Audio (BGM & SFX)
+    // ------------------------------------------------------------
+
+    // A. BGM (Left)
+    bool Is_BGM_Focus = (Get_Setting_Buffer() == SETTING_BUFFER::BGM_SETTING || Get_Setting_State() == SOUND_SETTING_STATE::BGM_SETTING);
     XMFLOAT4 BGM_Color = Is_BGM_Focus ? Select_Color : Normal_Color;
 
-    // Label "BGM"
-    Sprite_Draw(UI_BGM, UI_X, UI_BGM_Y, UI_W, UI_H, 0.0f, BGM_Color);
-
-    // Arrows (Left / Right)
-    Sprite_Draw(UI_Button_L, L_BUTTON_X, UI_BGM_Y, UI_H, UI_H, 0.0f, BGM_Color);
-    Sprite_Draw(UI_Button_R, R_BUTTON_X, UI_BGM_Y, UI_H, UI_H, 0.0f, BGM_Color);
-
-    // Number (0 ~ 10)
-    int bgmIdx = static_cast<int>(Get_BGM_Scale_Buffer()); // Enum -> Int
+    // Label
+    Sprite_Draw(UI_BGM, UI_BGM_X, UI_Sound_Y, UI_W, UI_H, 0.0f, BGM_Color);
+    // Arrows
+    Sprite_Draw(UI_Button_L, BGM_L_BUTTON_X, UI_Sound_Y, UI_H, UI_H, 0.0f, BGM_Color);
+    Sprite_Draw(UI_Button_R, BGM_R_BUTTON_X, UI_Sound_Y, UI_H, UI_H, 0.0f, BGM_Color);
+    // Number
+    int bgmIdx = static_cast<int>(Get_BGM_Scale_Buffer());
     if (bgmIdx >= 0 && bgmIdx <= 10)
-    {
-        Sprite_Draw(Num_Arr[bgmIdx], NUM_X, UI_BGM_Y, UI_H, UI_H, 0.0f, BGM_Color);
-    }
+        Sprite_Draw(Num_Arr[bgmIdx], BGM_NUM_X, UI_Sound_Y, UI_H, UI_H, 0.0f, BGM_Color);
 
-    // ------------------------------------------------------------
-    // 3. SFX Setting (UI + Arrows + Number)
-    // ------------------------------------------------------------
-    bool Is_SFX_Focus = (Get_Setting_Buffer() == SETTING_BUFFER::SFX || Get_Setting_State() == SOUND_SETTING_STATE::SFX_SETTING);
+    // B. SFX (Right)
+    bool Is_SFX_Focus = (Get_Setting_Buffer() == SETTING_BUFFER::SFX_SETTING || Get_Setting_State() == SOUND_SETTING_STATE::SFX_SETTING);
     XMFLOAT4 SFX_Color = Is_SFX_Focus ? Select_Color : Normal_Color;
 
-    // Label "SFX"
-    Sprite_Draw(UI_SFX, UI_X, UI_SFX_Y, UI_W, UI_H, 0.0f, SFX_Color);
-
+    // Label
+    Sprite_Draw(UI_SFX, UI_SFX_X, UI_Sound_Y, UI_W, UI_H, 0.0f, SFX_Color);
     // Arrows
-    Sprite_Draw(UI_Button_L, L_BUTTON_X, UI_SFX_Y, UI_H, UI_H, 0.0f, SFX_Color);
-    Sprite_Draw(UI_Button_R, R_BUTTON_X, UI_SFX_Y, UI_H, UI_H, 0.0f, SFX_Color);
-
+    Sprite_Draw(UI_Button_L, SFX_L_BUTTON_X, UI_Sound_Y, UI_H, UI_H, 0.0f, SFX_Color);
+    Sprite_Draw(UI_Button_R, SFX_R_BUTTON_X, UI_Sound_Y, UI_H, UI_H, 0.0f, SFX_Color);
     // Number
     int sfxIdx = static_cast<int>(Get_SFX_Scale_Buffer());
     if (sfxIdx >= 0 && sfxIdx <= 10)
-    {
-        Sprite_Draw(Num_Arr[sfxIdx], NUM_X, UI_SFX_Y, UI_H, UI_H, 0.0f, SFX_Color);
-    }
+        Sprite_Draw(Num_Arr[sfxIdx], SFX_NUM_X, UI_Sound_Y, UI_H, UI_H, 0.0f, SFX_Color);
+
 
     // ------------------------------------------------------------
     // 4. Back Button
@@ -556,6 +725,16 @@ SOUND_SCALE_BUFFER Get_SFX_Scale_Buffer()
     return static_cast<SOUND_SCALE_BUFFER>(SFX_Volume_Level);
 }
 
+bool Setting_Get_Sprint_Type()
+{
+    return Is_Sprint_Toggle;
+}
+
+bool Setting_Get_View_Type()
+{
+    return Is_Right_View;
+}
+
 Mouse_Info Get_Setting_Menu_Mouse_POS()
 {
     return Mouse_Setting;
@@ -579,12 +758,19 @@ void Setting_Menu_Texture()
     UI_Button_R = Texture_Manager::GetInstance()->GetID("UI_Num_Button_R");
 
     //------------------UI Texture------------------//
-    UI_BGM = Texture_Manager::GetInstance()->GetID("UI_BGM");
-    UI_SFX = Texture_Manager::GetInstance()->GetID("UI_SFX");
+    UI_BGM       = Texture_Manager::GetInstance()->GetID("UI_BGM");
+    UI_SFX       = Texture_Manager::GetInstance()->GetID("UI_SFX");
     UI_Sens_Text = Texture_Manager::GetInstance()->GetID("UI_Sensitivity"); 
-    UI_Back = Texture_Manager::GetInstance()->GetID("UI_Back");
-    UI_Background = Texture_Manager::GetInstance()->GetID("UI_Background");
+    UI_Back      = Texture_Manager::GetInstance()->GetID("UI_Back");
+    UI_Run_Toggle = Texture_Manager::GetInstance()->GetID("UI_Run_Toggle");
+    UI_View       = Texture_Manager::GetInstance()->GetID("UI_View");
+
+    UI_Background  = Texture_Manager::GetInstance()->GetID("UI_Background");
     UI_Pixel_White = Texture_Manager::GetInstance()->GetID("Pixel_Withe");
+    UI_Toggle_Box_Idle  = Texture_Manager::GetInstance()->GetID("UI_Weapon_Box");
+    UI_Toggle_Box_Check = Texture_Manager::GetInstance()->GetID("UI_Toggle_Check");
+    UI_Toggle_Box_L = Texture_Manager::GetInstance()->GetID("UI_Toggle_L");
+    UI_Toggle_Box_R = Texture_Manager::GetInstance()->GetID("UI_Toggle_R");
 }
 
 static int Get_Volume_Texture_ID(SOUND_SCALE_BUFFER level)

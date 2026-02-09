@@ -96,6 +96,8 @@ void Game_Finalize()
 
 void Game_Update(double elapsed_time)
 {
+	float dt = static_cast<float>(elapsed_time);
+
 	if (KeyLogger_IsTrigger(KK_F1))
 	{
 		Is_Debug_Mode = !Is_Debug_Mode;
@@ -123,24 +125,22 @@ void Game_Update(double elapsed_time)
 	if (Get_Debug_Mode_State())
 	{
 		Debug_Camera_Update(elapsed_time);
-		Player_Update(elapsed_time);
+		Player_Model_Animation_Update(dt);
 		return;
 	}
 
-	float dt = static_cast<float>(elapsed_time);
-
 	if (Is_Game_Clear_Sequence)
 	{
-		float currentVol = Audio_Manager::GetInstance()->Get_Target_BGM_Volume();
+		float Current_Vol = Audio_Manager::GetInstance()->Get_Target_BGM_Volume();
 
-		float fadeOutSpeed = 1.0f / 3.0f;
+		float Fade_Out_Speed = 1.0f / 3.0f;
 
-		if (currentVol > 0.0f)
+		if (Current_Vol > 0.0f)
 		{
-			currentVol -= fadeOutSpeed * dt;
-			if (currentVol < 0.0f) currentVol = 0.0f;
+			Current_Vol -= Fade_Out_Speed * dt;
+			if (Current_Vol < 0.0f) Current_Vol = 0.0f;
 
-			Audio_Manager::GetInstance()->Set_Target_BGM_Volume(currentVol);
+			Audio_Manager::GetInstance()->Set_Target_BGM_Volume(Current_Vol);
 		}
 
 		if (Fade_GetState() == FADE_STATE::FINISHED_OUT)
@@ -236,8 +236,11 @@ void Game_Draw()
 	Billboard_Manager::Instance().Draw();
 	Resource_Manager::GetInstance().Draw();
 
-	// Draw UI
-	Game_UI_Draw();
+	// Draw UI When Not Debug Mod
+	if (!Get_Debug_Mode_State())
+	{
+		Game_UI_Draw();
+	}
 
 	if (Upgrade_System::GetInstance().Is_Active())
 	{

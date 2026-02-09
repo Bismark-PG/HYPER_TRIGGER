@@ -52,16 +52,15 @@ void Enemy_Spawner::Update(double dt)
                 // Spawn For Count
                 for (int count = 0; count < wave.BatchCount; ++count)
                 {
-                    XMFLOAT3 spawnPos = Get_Random_Spawn_Position();
-
-                    // Check Y POS?
-                    Enemy_Manager::GetInstance().Spawn(spawnPos, wave.Type);
+                    Enemy_Manager::GetInstance().Spawn(wave.Type);
                 }
             }
         }
     }
 }
 
+// Legacy System For Get Random Spawn POS, Not Use Now 
+/*
 DirectX::XMFLOAT3 Enemy_Spawner::Get_Random_Spawn_Position()
 {
     // Get Player POS
@@ -92,3 +91,4 @@ DirectX::XMFLOAT3 Enemy_Spawner::Get_Random_Spawn_Position()
 
     return XMFLOAT3(spawnX, spawnY, spawnZ);
 }
+*/

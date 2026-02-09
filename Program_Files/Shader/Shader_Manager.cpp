@@ -499,7 +499,8 @@ void Shader_Manager::SetBones(const DirectX::XMFLOAT4X4* bones, int count)
 {
     if (count > 256) count = 256; // Lock Buffer Scale
 
-    Bone_Buffer cbData = {};
+    static Bone_Buffer cbData = {};
+    ZeroMemory(&cbData, sizeof(Bone_Buffer)); // Safety Code For Trash Deta
 
     // If Bone Working Is Werid, Use XMMatrixTranspose Change
     for (int i = 0; i < count; ++i)

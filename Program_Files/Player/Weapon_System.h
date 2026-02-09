@@ -46,6 +46,9 @@ public:
     bool Is_Reloading() const { return m_IsReloading; }
     float Get_Reload_State() const;
 
+    bool Is_Switching() const { return m_IsSwitching; }
+    float Get_Switching_State() const;
+
 private:
     Weapon_System();
     ~Weapon_System();
@@ -65,6 +68,13 @@ private:
     bool  m_IsReloading = false;
     float m_ReloadTimer = 0.0f;
     float m_ReloadMaxTime = 0.0f;
+    int   m_ReloadStage = 0; // 0: Start, 1: Middle/Loop, 2: End
+    
+    float m_AutoFireBuffer = 0.0f;
+
+    bool  m_IsSwitching = false;
+    float m_SwitchTimer = 0.0f;
+    const float m_SwitchMaxTime = 1.0f; // Weapon Switch Timer
 
     void Ammo_Reload();
 };

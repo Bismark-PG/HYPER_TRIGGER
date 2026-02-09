@@ -32,8 +32,7 @@ struct ResourceItem
 
 	// For Weapon Box
     WeaponType          W_Type;
-    Billboard_Object*   Linked_Icon = nullptr;
-    Billboard_Object*   Linked_BG = nullptr;
+    Billboard_Object*   Drop_Box_Icon_Link = nullptr;
 };
 
 class Resource_Manager

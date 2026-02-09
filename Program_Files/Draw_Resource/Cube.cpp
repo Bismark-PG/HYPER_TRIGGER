@@ -162,7 +162,7 @@ void Cube_Draw(XMMATRIX W_Matrix, Shader_Filter Filter, Cube_Type Type)
 	g_pContext->DrawIndexed(NUM_INDEX, 0, 0);
 }
 
-void Debug_Cube_Draw(DirectX::XMMATRIX W_Matrix, Shader_Filter Filter)
+void Debug_Cube_Draw(DirectX::XMMATRIX W_Matrix)
 {
 	// 頂点バッファを描画パイプラインに設定
 	UINT stride = sizeof(Vertex3D);

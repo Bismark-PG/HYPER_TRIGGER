@@ -16,8 +16,10 @@ enum class SETTING_BUFFER
 	SETTING_NONE,
 	SETTING_WAIT,
 	SENSITIVITY,
-	BGM,
-	SFX,
+	SPRINT_TOGGLE,
+	SHOULDER_VIEW,
+	BGM_SETTING,
+	SFX_SETTING,
 	SETTING_BACK,
 	SETTING_DONE,
 	DONE
@@ -27,6 +29,8 @@ enum class SOUND_SETTING_STATE
 {
 	NONE,
 	SENSITIVITY_SETTING,
+	SPRINT_SETTING,
+	VIEW_SETTING,
 	BGM_SETTING,
 	SFX_SETTING,
 	SET_DONE
@@ -54,6 +58,9 @@ void Update_BGM_Scale_Buffer(SOUND_SCALE_BUFFER BGM_Scale);
 SOUND_SCALE_BUFFER Get_BGM_Scale_Buffer();
 void Update_SFX_Scale_Buffer(SOUND_SCALE_BUFFER SFX_Scale);
 SOUND_SCALE_BUFFER Get_SFX_Scale_Buffer();
+
+bool Setting_Get_Sprint_Type(); // true: Toggle, false: Hold
+bool Setting_Get_View_Type();   // true: Right, false: Left
 
 Mouse_Info Get_Setting_Menu_Mouse_POS();
 

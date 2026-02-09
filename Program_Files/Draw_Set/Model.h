@@ -110,6 +110,7 @@ struct BoneInfo
 {
     DirectX::XMMATRIX Offset;
     DirectX::XMMATRIX FinalTransform;
+    DirectX::XMFLOAT4X4 ModelSpaceTransform;
 };
 
 struct MODEL
@@ -139,6 +140,7 @@ struct MODEL
 MODEL* ModelLoad(const char* FileName, bool bBlender = false);
 void ModelRelease(MODEL* model);
 void ModelDraw(MODEL* model, const DirectX::XMMATRIX& mtxWorld);
+void ModelDraw_Bone(MODEL* model, const DirectX::XMMATRIX& worldMtx);
 
 // Logic For Get Collision
 AABB Model_Get_AABB(MODEL* model, const DirectX::XMFLOAT3& position);

@@ -65,13 +65,9 @@ void Resource_Manager::Update(double elapsed_time)
             if (item.Type == Resource_Type::WEAPON_BOX)
             {
 
-                if (item.Linked_Icon)
+                if (item.Drop_Box_Icon_Link)
                 {
-                    item.Linked_Icon->Deactivate();
-                }
-                if (item.Linked_BG)
-                {
-                    item.Linked_BG->Deactivate();
+                    item.Drop_Box_Icon_Link->Deactivate();
                 }
             }
             continue;
@@ -226,11 +222,10 @@ void Resource_Manager::Spawn_Resource(const DirectX::XMFLOAT3& pos, Resource_Typ
             item.LifeTime = lifeTime;
 
             // If Resource Type Is Weapom Bos, Get Billboard
-            item.Linked_Icon = nullptr;
-            item.Linked_BG = nullptr;
+            item.Drop_Box_Icon_Link = nullptr;
             if (type == Resource_Type::WEAPON_BOX)
             {
-                Billboard_Manager::Instance().Create_Weapon(pos, wType, &item.Linked_Icon, &item.Linked_BG);
+                Billboard_Manager::Instance().Create_Weapon(pos, wType, &item.Drop_Box_Icon_Link);
             }
             return;
         }
@@ -247,7 +242,7 @@ void Resource_Manager::Spawn_Resource(const DirectX::XMFLOAT3& pos, Resource_Typ
     // If Resource Type Is Weapom Bos, Get Billboard
     if (type == Resource_Type::WEAPON_BOX)
     {
-        Billboard_Manager::Instance().Create_Weapon(pos, wType, &newItem.Linked_Icon, &newItem.Linked_BG);
+        Billboard_Manager::Instance().Create_Weapon(pos, wType, &newItem.Drop_Box_Icon_Link);
     }
     m_Items.push_back(newItem);
 }
@@ -286,9 +281,9 @@ ResourceItem* Resource_Manager::Get_Nearest_Weapon_In_View(const DirectX::XMFLOA
         XMVECTOR Target_Pos = {};
 
         // If Box Have Icon, Check Icon POS
-        if (item.Linked_Icon && item.Linked_Icon->IsActive())
+        if (item.Drop_Box_Icon_Link && item.Drop_Box_Icon_Link->IsActive())
         {
-            XMFLOAT3 POS = item.Linked_Icon->GetPosition();
+            XMFLOAT3 POS = item.Drop_Box_Icon_Link->GetPosition();
             Target_Pos = XMLoadFloat3(&POS);
         }
         else

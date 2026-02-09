@@ -15,6 +15,8 @@
 #include <string>
 #include "debug_ostream.h"
 #include "Game_Model.h"
+#include "Debug_Collision.h"
+#include "Palette.h"
 using namespace DirectX;
 
 // ===== Root =====
@@ -537,6 +539,33 @@ void ModelDraw(MODEL* model, const DirectX::XMMATRIX& mtxWorld)
 	}
 }
 
+void ModelDraw_Bone(MODEL* model, const DirectX::XMMATRIX& worldMtx)
+{
+	if (!model) return;
+
+	for (const auto& bone : model->BoneInfos)
+	{
+		// 1. Get Bone Matrix Info
+		XMMATRIX boneMtx = XMLoadFloat4x4(&bone.ModelSpaceTransform);
+
+		// 2. Get Real World Matrix In Model World Matrix
+		XMMATRIX finalMtx = boneMtx * worldMtx;
+
+		// 3. Get Translation In Matrix
+		XMFLOAT3 bonePos;
+		XMStoreFloat3(&bonePos, finalMtx.r[3]);
+
+		// 4. Set Box Scale
+		float boxSize = 0.05f;
+		AABB boneBox = {};
+		boneBox.Min = { bonePos.x - boxSize, bonePos.y - boxSize, bonePos.z - boxSize };
+		boneBox.Max = { bonePos.x + boxSize, bonePos.y + boxSize, bonePos.z + boxSize };
+
+		// 5. Draw
+		Debug_Collision_Draw(boneBox, PALETTE::Red);
+	}
+}
+
 AABB Model_Get_AABB(MODEL* model, const DirectX::XMFLOAT3& position)
 {
 	return
@@ -832,13 +861,16 @@ static void ReadNodeHierarchy(
 	{
 		unsigned int boneIndex = model->BoneMapping[name];
 
-		// 1. Offset Matrix
+		// 1. Save Bone Matrix
+		XMStoreFloat4x4(&model->BoneInfos[boneIndex].ModelSpaceTransform, globalTransform);
+
+		// 2. Offset Matrix
 		XMMATRIX offset = model->BoneInfos[boneIndex].Offset;
 
-		// 2. Global Inverse
+		// 3. Global Inverse
 		XMMATRIX globalInverse = model->GlobalInverse;
 
-		// 3. Final Set (Offset * Global * Inverse)
+		// 4. Final Set (Offset * Global * Inverse)
 		XMMATRIX finalTransform = offset * globalTransform * globalInverse;
 
 		model->BoneInfos[boneIndex].FinalTransform = finalTransform;

@@ -48,7 +48,7 @@ struct WeaponState
 // 1. Handgun (Kick) - 12 / 36 / 2 Sec
 static const WeaponSpec SPEC_HANDGUN =
 {
-    WeaponType::HANDGUN, BulletType::RAY, 0.2f, false, 20,
+    WeaponType::HANDGUN, BulletType::RAY, 0.1f, false, 20,
     12, 36, 2.0f,
     "Kick"
 };
@@ -64,7 +64,7 @@ static const WeaponSpec SPEC_RIFLE =
 // 3. Machine Gun (Guitar) - 120 / 240 / 5 Sec
 static const WeaponSpec SPEC_MACHINEGUN =
 {
-    WeaponType::MACHINE_GUN, BulletType::RAY, 0.06f, true, 12,
+    WeaponType::MACHINE_GUN, BulletType::RAY, 0.06f, true, 10,
     120, 240, 5.0f,
     "Guitar"
 };

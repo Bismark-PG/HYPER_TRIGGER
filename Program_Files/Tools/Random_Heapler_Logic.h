@@ -39,7 +39,7 @@ inline int Get_Random_Int_Core(int min, int max)
 // Logic For Resource Manager
 // -----------------------------------------------------------
 
-static float RandomFloatRange(float min, float max)
+inline float RandomFloatRange(float min, float max)
 {
 	return Get_Random_Float_Core(min, max);
 }
@@ -48,7 +48,7 @@ static float RandomFloatRange(float min, float max)
 // Logic For Enemy Spawner
 // -----------------------------------------------------------
 
-static float RandomFloat(float min, float max)
+inline float RandomFloat(float min, float max)
 {
 	return Get_Random_Float_Core(min, max);
 }
@@ -57,7 +57,7 @@ static float RandomFloat(float min, float max)
 // Logic For Enemy Manager
 // -----------------------------------------------------------
 
-static float GetRandomFloat(float min, float max)
+inline float GetRandomFloat(float min, float max)
 {
 	return Get_Random_Float_Core(min, max);
 }
@@ -66,12 +66,12 @@ static float GetRandomFloat(float min, float max)
 // Logic For Particle
 // -----------------------------------------------------------
 
-static float RandomFloatMinus1To1() // (-1.0 ~ 1.0)
+inline float RandomFloatMinus1To1() // (-1.0 ~ 1.0)
 {
 	return Get_Random_Float_Core(-1.0f, 1.0f);
 }
 
-static float RandomFloat()			// (0.0 ~ 1.0)
+inline float RandomFloat()			// (0.0 ~ 1.0)
 {
 	return Get_Random_Float_Core(0.0f, 1.0f);
 }

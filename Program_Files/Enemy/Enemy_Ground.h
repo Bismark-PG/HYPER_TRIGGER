@@ -24,13 +24,13 @@ public:
         m_Gravity += -9.8f * dt;
         Position.y += m_Gravity * dt;
 
-        float groundY = Mash_Field_Get_Height(Position.x, Position.z);
-        if (groundY > -1000.0f)
+        float Ground_Y = Mash_Field_Get_Height(Position.x, Position.z);
+        if (Ground_Y > -1000.0f)
         {
             float feetPos = Position.y - m_BottomOffset;
-            if (feetPos < groundY)
+            if (feetPos < Ground_Y)
             {
-                Position.y = groundY + m_BottomOffset;
+                Position.y = Ground_Y + m_BottomOffset;
                 m_Gravity = 0.0f;
             }
         }

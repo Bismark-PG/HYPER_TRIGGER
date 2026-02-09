@@ -262,13 +262,13 @@ namespace Text
 						pV[vertexIndex + 3] = { {x + charWidth * m_Scale, y + charHeight * m_Scale, 0}, segment.color, {u1, v1} };
 
 						UINT indexStart = charDrawn * 6;
-						pI[indexStart + 0] = vertexIndex + 0;
-						pI[indexStart + 1] = vertexIndex + 1;
-						pI[indexStart + 2] = vertexIndex + 2;
+						pI[indexStart + 0] = static_cast<WORD>(vertexIndex + 0);
+						pI[indexStart + 1] = static_cast<WORD>(vertexIndex + 1);
+						pI[indexStart + 2] = static_cast<WORD>(vertexIndex + 2);
 
-						pI[indexStart + 3] = vertexIndex + 2;
-						pI[indexStart + 4] = vertexIndex + 1;
-						pI[indexStart + 5] = vertexIndex + 3;
+						pI[indexStart + 3] = static_cast<WORD>(vertexIndex + 2);
+						pI[indexStart + 4] = static_cast<WORD>(vertexIndex + 1);
+						pI[indexStart + 5] = static_cast<WORD>(vertexIndex + 3);
 
 						charDrawn++;
 					}

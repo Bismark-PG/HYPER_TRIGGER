@@ -33,7 +33,8 @@ private:
     Enemy_Spawner(const Enemy_Spawner&) = delete;
     Enemy_Spawner& operator=(const Enemy_Spawner&) = delete;
 
-    DirectX::XMFLOAT3 Get_Random_Spawn_Position();
+    // Legacy System For Get Random Spawn POS, Not Use Now 
+    // DirectX::XMFLOAT3 Get_Random_Spawn_Position();
 
     float m_GameTime = 0.0f;
 

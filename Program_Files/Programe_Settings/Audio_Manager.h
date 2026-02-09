@@ -80,6 +80,11 @@ public:
     // Set Volume For Some Layer
     void Set_Layer_Volume(const std::string& name, float volume);
 
+    // Loop Sound Control
+    void Play_Loop_SFX(const std::string& name);
+    void Stop_Loop_SFX(const std::string& name);
+    bool Is_Playing_Loop_SFX(const std::string& name);
+
     // Check Loop For Trigger
     bool Is_BGM_Loop_Just_Finished();
     int Get_Current_Loop_Count() const;
@@ -122,6 +127,9 @@ private:
     // Layer System
     std::vector<BGM_Layer> Active_BGM_Layers;
     bool Is_Loop_Flag = false; // Check Loop
+
+    // SFX Looper
+    std::map<std::string, IXAudio2SourceVoice*> m_LoopingVoices;
 
     int m_CurrentLoopCount = 0;
     std::chrono::high_resolution_clock::time_point Last_Loop_Check_Time;

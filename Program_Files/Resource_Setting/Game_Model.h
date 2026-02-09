@@ -23,10 +23,10 @@ public:
     Model_Manager(const Model_Manager&) = delete;
     Model_Manager& operator=(const Model_Manager&) = delete;
 
-    static void Init(ID3D11Device* device, ID3D11DeviceContext* context);
+    static void Init();
     static void Final();
 
-    void Load(ID3D11Device* device, ID3D11DeviceContext* context);
+    void Load();
     static MODEL* GetModel(const std::string& name);
 
 private:

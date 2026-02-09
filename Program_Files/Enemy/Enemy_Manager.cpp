@@ -48,6 +48,8 @@ void Enemy_Manager::Final()
 
 void Enemy_Manager::Update(double elapsed_time)
 {
+    float dt = static_cast<float>(elapsed_time);
+
     // Update active list
     m_ActiveList.clear();
 
@@ -55,7 +57,7 @@ void Enemy_Manager::Update(double elapsed_time)
     {
         if (e->IsActive())
         {
-            e->Update(elapsed_time);
+            e->Update(dt);
             m_ActiveList.push_back(e);
         }
     }
@@ -82,7 +84,7 @@ void Enemy_Manager::Reset()
     }
 }
 
-void Enemy_Manager::Spawn(const DirectX::XMFLOAT3& pos, EnemyType type)
+void Enemy_Manager::Spawn(EnemyType type)
 {
     // Get Player POS, Camera Info
     DirectX::XMFLOAT3 P_Pos = Player_Get_POS();
@@ -128,7 +130,7 @@ void Enemy_Manager::Spawn(const DirectX::XMFLOAT3& pos, EnemyType type)
     SpawnPos.z = P_Pos.z + sinf(angle) * distance;
 
     // Correct Y Axis
-    float groundY = Mash_Field_Get_Height(SpawnPos.x, SpawnPos.z);
+    float Ground_Y = Mash_Field_Get_Height(SpawnPos.x, SpawnPos.z);
 
     // Filght Type Y Axis Will Be Update For Enemy Manager, So Just Spawn
     if (type == EnemyType::FLIGHT_NORMAL || type == EnemyType::FLIGHT_DASHER)

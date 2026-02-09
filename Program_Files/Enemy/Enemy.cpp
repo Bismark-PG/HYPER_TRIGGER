@@ -95,6 +95,7 @@ void Enemy::Deactivate()
 
 void Enemy::Update(double elapsed_time)
 {
+	float dt = static_cast<float>(elapsed_time);
 }
 
 void Enemy::Draw()
@@ -339,8 +340,10 @@ WeaponType Enemy::Get_Weapon_Probabilities(int Locked_ID, bool Is_Special, const
 	return W_Type;
 }
 
-void Enemy::Enemy_Collision_Map(double dt)
+void Enemy::Enemy_Collision_Map(double elapsed_time)
 {
+	float dt = static_cast<float>(elapsed_time);
+
 	AABB E_AABB = GetAABB();
 	int OBJ_Count = Map_System_Get_Object_Count();
 
@@ -367,8 +370,10 @@ void Enemy::Enemy_Collision_Map(double dt)
 	}
 }
 
-void Enemy::Enemy_Collision_Player(double dt)
+void Enemy::Enemy_Collision_Player(double elapsed_time)
 {
+	float dt = static_cast<float>(elapsed_time);
+
 	XMFLOAT3 P_Pos = Player_Get_POS();
 	XMFLOAT3 E_Pos = Position;
 
@@ -415,8 +420,10 @@ void Enemy::Enemy_Collision_Player(double dt)
 	}
 }
 
-void Enemy::Enemy_Collision_Enemy(double dt)
+void Enemy::Enemy_Collision_Enemy(double elapsed_time)
 {
+	float dt = static_cast<float>(elapsed_time);
+
 	std::vector<Enemy*>& activeList = Enemy_Manager::GetInstance().Get_Active_List();
 
 	AABB My_AABB = GetAABB();

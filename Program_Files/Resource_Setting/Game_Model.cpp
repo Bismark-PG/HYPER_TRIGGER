@@ -19,10 +19,10 @@ Model_Manager* Model_Manager::GetInstance()
     return &instance;
 }
 
-void Model_Manager::Init(ID3D11Device* device, ID3D11DeviceContext* context)
+void Model_Manager::Init()
 {
     Model_Manager::GetInstance()->Clear();
-    Model_Manager::GetInstance()->Load(device, context);
+    Model_Manager::GetInstance()->Load();
 }
 
 void Model_Manager::Final()
@@ -30,7 +30,7 @@ void Model_Manager::Final()
     Model_Manager::GetInstance()->Clear();
 }
 
-void Model_Manager::Load(ID3D11Device* device, ID3D11DeviceContext* context)
+void Model_Manager::Load()
 {
     MODEL* Player = ModelLoad("Resource/Model/Player_Swat.fbx", false);
     if (Player)

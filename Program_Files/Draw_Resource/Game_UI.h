@@ -18,5 +18,7 @@ void Game_UI_Draw();
 void Game_UI_Texture();
 
 void Game_UI_Trigger_Damage();
+void Game_UI_Is_Aiming_Mode(bool Is_Aiming);
+bool Game_UI_Aiming_Now();
 
 #endif // GAME_UI_H

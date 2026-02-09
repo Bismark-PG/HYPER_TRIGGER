@@ -41,6 +41,8 @@ void Player_Camera_Set_Sights(Player_Sights sight);
 void Player_Camera_Update_Sights();
 void Player_Camera_Change_Sights();
 
-DirectX::XMFLOAT4X4& PlayerCamera_GetViewMatrix();
+void Player_Camera_Set_Aiming_Mode(bool Is_Aiming);
+
+DirectX::XMFLOAT4X4& Player_Camera_Get_View_Matrix();
 
 #endif //PLAYER_CAMERA_H

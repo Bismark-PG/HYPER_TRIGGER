@@ -177,6 +177,8 @@ void Mash_Field_Draw()
 
 float Mash_Field_Get_Height(float worldX, float worldZ)
 {
+	// Legacy System For Get Ground Height For Enemy Y, Not Use Now 
+
 	/*
 	// World Index to Local Index
 	// WorldX = (IndexX * Size) + OffsetX
@@ -207,6 +209,7 @@ float Mash_Field_Get_Height(float worldX, float worldZ)
 	return Height;
 	*/
 
+	// Just Return 0.0f (Ground Y)
 	return 0.0f;
 }
 

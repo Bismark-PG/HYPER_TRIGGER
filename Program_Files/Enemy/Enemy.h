@@ -70,8 +70,8 @@ protected:
 	DirectX::XMFLOAT3 m_TargetPos = {};
 
 	// --- Physical Defense ---
-	void Enemy_Collision_Map(double dt);
-	void Enemy_Collision_Player(double dt);
-	void Enemy_Collision_Enemy(double dt);
+	void Enemy_Collision_Map(double elapsed_time);
+	void Enemy_Collision_Player(double elapsed_time);
+	void Enemy_Collision_Enemy(double elapsed_time);
 };
 #endif // ENEMY_H

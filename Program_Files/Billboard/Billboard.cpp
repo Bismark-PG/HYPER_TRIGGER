@@ -86,7 +86,7 @@ void Billboard_Draw_Internal(int Tex_ID, const XMFLOAT3& POS, float Scale_X, flo
 	XMMATRIX Scale = XMMatrixScaling(Scale_X, Scale_Y, 1.0f);
 
 	// Get Camera Rotation
-	XMFLOAT4X4 view4x4 = PlayerCamera_GetViewMatrix();
+	XMFLOAT4X4 view4x4 = Player_Camera_Get_View_Matrix();
 
 	// Remove Translation
 	view4x4._41 = 0.0f; view4x4._42 = 0.0f; view4x4._43 = 0.0f;

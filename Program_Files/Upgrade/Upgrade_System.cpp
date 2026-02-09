@@ -1,8 +1,8 @@
 /*==============================================================================
 
-	Manage Player Upgrade System [Upgrade_System.cpp]
+    Manage Player Upgrade System [Upgrade_System.cpp]
 
-	Author : Choi HyungJoon
+    Author : Choi HyungJoon
 
 ==============================================================================*/
 #include "Upgrade_System.h"
@@ -23,7 +23,8 @@ static int BG_ID = -1;
 
 //----------------------POS----------------------//
 static float BG_X, BG_Y, BG_W, BG_H;
-static float Center_X_L, Center_X_M, Center_X_R, Card_Y, Card_W, Card_H;
+static float L_Card_Left, M_Card_Left, R_Card_Left;
+static float Card_Y, Card_W, Card_H;
 
 //----------------State & Data----------------//
 Card_Buffer C_Buffer = Card_Buffer::NONE;
@@ -40,23 +41,26 @@ void Upgrade_System::Init()
     float Screen_W = static_cast<float>(Direct3D_GetBackBufferWidth());
     float Screen_H = static_cast<float>(Direct3D_GetBackBufferHeight());
 
-    Mouse_Upgrade_Menu.Size = Screen_H * 0.05f;
-    Mouse_Upgrade_Menu.Prev_X = Screen_W * 0.5f;
-    Mouse_Upgrade_Menu.Prev_Y = Screen_H * 0.5f;
-
     BG_W = Screen_W * 0.8f;
     BG_H = Screen_H * 0.8f;
     BG_X = (Screen_W - BG_W) * 0.5f;
     BG_Y = (Screen_H - BG_H) * 0.5f;
 
-    Card_W = BG_W * 0.3f;
-    Card_H = BG_H * 0.6f;
-    Card_Y = (BG_H * 0.5f) - (Card_H * 0.5f);
+    Mouse_Upgrade_Menu.Size = Screen_H * 0.05f;
+    Mouse_Upgrade_Menu.Prev_X = Screen_W * 0.5f;
+    Mouse_Upgrade_Menu.Prev_Y = Screen_H * 0.5f;
 
-	Center_X_M = (BG_W * 0.5f) - (Card_W * 0.5f);
-	float Width = (Center_X_M - (Card_W * 0.5f)) * 0.5f;
-	Center_X_L = BG_X + Width;
-	Center_X_R = BG_X + BG_W - Width;
+    Card_W = BG_W * 0.25f;
+    Card_H = BG_H * 0.6f;
+    Card_Y = BG_Y + (BG_H * 0.5f) - (Card_H * 0.5f);
+
+    float Total_Gap_Space = BG_W - (Card_W * 3.0f);
+    float One_Gap = Total_Gap_Space / 4.0f;
+
+    L_Card_Left = BG_X + One_Gap;
+
+    M_Card_Left = L_Card_Left + Card_W + One_Gap;
+    R_Card_Left = M_Card_Left + Card_W + One_Gap;
 }
 
 void Upgrade_System::Final()
@@ -91,44 +95,52 @@ void Upgrade_System::Update()
 
     if (Mouse_Moved)
     {
-        if (Is_Mouse_In_RECT(Mouse_Upgrade_Menu.X, Mouse_Upgrade_Menu.Y, Center_X_L, Card_Y, Card_W, Card_H))
+        if (Is_Mouse_In_RECT(Mouse_Upgrade_Menu.X, Mouse_Upgrade_Menu.Y, L_Card_Left, Card_Y, Card_W, Card_H))
         {
-            Set_Card_Buffer(Card_Buffer::CARD_L);
-            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            if (C_Buffer != Card_Buffer::CARD_L)
+            {
+                Set_Card_Buffer(Card_Buffer::CARD_L);
+                Audio_Manager::GetInstance()->Play_SFX("Upgrade_Buffer");
+            }
         }
-        else if (Is_Mouse_In_RECT(Mouse_Upgrade_Menu.X, Mouse_Upgrade_Menu.Y, Center_X_M, Card_Y, Card_W, Card_H))
+        else if (Is_Mouse_In_RECT(Mouse_Upgrade_Menu.X, Mouse_Upgrade_Menu.Y, M_Card_Left, Card_Y, Card_W, Card_H))
         {
-            Set_Card_Buffer(Card_Buffer::CARD_M);
-            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            if (C_Buffer != Card_Buffer::CARD_M)
+            {
+                Set_Card_Buffer(Card_Buffer::CARD_M);
+                Audio_Manager::GetInstance()->Play_SFX("Upgrade_Buffer");
+            }
         }
-        else if (Is_Mouse_In_RECT(Mouse_Upgrade_Menu.X, Mouse_Upgrade_Menu.Y, Center_X_R, Card_Y, Card_W, Card_H))
+        else if (Is_Mouse_In_RECT(Mouse_Upgrade_Menu.X, Mouse_Upgrade_Menu.Y, R_Card_Left, Card_Y, Card_W, Card_H))
         {
-            Set_Card_Buffer(Card_Buffer::CARD_R);
-            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            if (C_Buffer != Card_Buffer::CARD_R)
+            {
+                Set_Card_Buffer(Card_Buffer::CARD_R);
+                Audio_Manager::GetInstance()->Play_SFX("Upgrade_Buffer");
+            }
         }
         else
         {
             Set_Card_Buffer(Card_Buffer::WAIT);
         }
     }
-
     if (KeyLogger_IsTrigger(KK_A) || KeyLogger_IsTrigger(KK_LEFT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_DPAD_LEFT))
     {
         if (Get_Card_Buffer() == Card_Buffer::NONE || Get_Card_Buffer() == Card_Buffer::WAIT)
         {
-            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            Audio_Manager::GetInstance()->Play_SFX("Upgrade_Buffer");
             Set_Card_Buffer(Card_Buffer::CARD_L);
         }
         else
         {
             if (Get_Card_Buffer() == Card_Buffer::CARD_M)
             {
-                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Audio_Manager::GetInstance()->Play_SFX("Upgrade_Buffer");
                 Set_Card_Buffer(Card_Buffer::CARD_L);
             }
             else if (Get_Card_Buffer() == Card_Buffer::CARD_R)
             {
-                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Audio_Manager::GetInstance()->Play_SFX("Upgrade_Buffer");
                 Set_Card_Buffer(Card_Buffer::CARD_M);
             }
         }
@@ -137,19 +149,19 @@ void Upgrade_System::Update()
     {
         if (Get_Card_Buffer() == Card_Buffer::NONE || Get_Card_Buffer() == Card_Buffer::WAIT)
         {
-            Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+            Audio_Manager::GetInstance()->Play_SFX("Upgrade_Buffer");
             Set_Card_Buffer(Card_Buffer::CARD_R);
         }
         else
         {
             if (Get_Card_Buffer() == Card_Buffer::CARD_L)
             {
-                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Audio_Manager::GetInstance()->Play_SFX("Upgrade_Buffer");
                 Set_Card_Buffer(Card_Buffer::CARD_M);
             }
             else if (Get_Card_Buffer() == Card_Buffer::CARD_M)
             {
-                Audio_Manager::GetInstance()->Play_SFX("Buffer_Move");
+                Audio_Manager::GetInstance()->Play_SFX("Upgrade_Buffer");
                 Set_Card_Buffer(Card_Buffer::CARD_R);
             }
         }
@@ -157,21 +169,22 @@ void Upgrade_System::Update()
 
     if (Confirm)
     {
-        Audio_Manager::GetInstance()->Play_SFX("Buffer_Select");
-
         if (m_CurrentCards.size() < 3) return;
 
         switch (C_Buffer)
         {
         case Card_Buffer::CARD_L:
+            Audio_Manager::GetInstance()->Play_SFX("Upgrade_Select");
             Apply_Upgrade(m_CurrentCards[0]);
             break;
 
         case Card_Buffer::CARD_M:
+            Audio_Manager::GetInstance()->Play_SFX("Upgrade_Select");
             Apply_Upgrade(m_CurrentCards[1]);
             break;
 
         case Card_Buffer::CARD_R:
+            Audio_Manager::GetInstance()->Play_SFX("Upgrade_Select");
             Apply_Upgrade(m_CurrentCards[2]);
             break;
         }
@@ -186,40 +199,44 @@ void Upgrade_System::Draw()
 
     Sprite_Draw(BG_ID, BG_X, BG_Y, BG_W, BG_H);
 
-    float Center_X[3] = { Center_X_L, Center_X_M, Center_X_R };
+    float Left_X_Arr[3] = { L_Card_Left, M_Card_Left, R_Card_Left };
 
     for (int i = 0; i < m_CurrentCards.size(); ++i)
     {
-        float currentW = Card_W, currentH = Card_H ,currentY = Card_Y;
+        float Current_W = Card_W, Current_H = Card_H;
+        float Draw_X = Left_X_Arr[i], Draw_Y = Card_Y;
 
-        bool isHover = false;
-
+        bool Is_Hover = false;
         if (i == 0 && C_Buffer == Card_Buffer::CARD_L) 
         {
-            isHover = true;
+            Is_Hover = true;
         }
         if (i == 1 && C_Buffer == Card_Buffer::CARD_M)
         {
-            isHover = true;
+            Is_Hover = true;
         }
-        if (i == 2 && C_Buffer == Card_Buffer::CARD_R)
+        if (i == 2 && C_Buffer == Card_Buffer::CARD_R) 
         {
-            isHover = true;
+            Is_Hover = true;
         }
 
-        if (isHover)
+        if (Is_Hover)
         {
-            float scaleFactor = 1.1f;
-            currentW *= scaleFactor;
-            currentH *= scaleFactor;
-            currentY = (BG_H * 0.5f) - (currentH * 0.5f);
-        }
+            float Scale = 1.1f;
 
-        float Draw_X = Center_X[i] - (currentW * 0.5f);
+            float Scaled_W = Card_W * Scale;
+            float Scaled_H = Card_H * Scale;
+
+            Draw_X -= (Scaled_W - Card_W) * 0.5f;
+            Draw_Y -= (Scaled_H - Card_H) * 0.5f;
+
+            Current_W = Scaled_W;
+            Current_H = Scaled_H;
+        }
 
         if (m_CurrentCards[i].TextureID != -1)
         {
-            Sprite_Draw(m_CurrentCards[i].TextureID, Draw_X, currentY, currentW, currentH);
+            Sprite_Draw(m_CurrentCards[i].TextureID, Draw_X, Draw_Y, Current_W, Current_H);
         }
     }
 
@@ -236,11 +253,11 @@ void Upgrade_System::Show_Upgrade_Select()
 
     auto drawnCards = Card_List::Get_Random_Cards(3);
 
-    for (const auto & data : drawnCards)
+    for (const auto& data : drawnCards)
     {
         Card_Data uiCard;
         uiCard.Type = data.Type;
-		uiCard.Rarity = data.Rarity;
+        uiCard.Rarity = data.Rarity;
         uiCard.Title = data.Title;
         uiCard.TextureID = data.TextureID;
 
@@ -248,7 +265,7 @@ void Upgrade_System::Show_Upgrade_Select()
     }
 
     Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
-    Audio_Manager::GetInstance()->Play_SFX("UI_Open");
+    Audio_Manager::GetInstance()->Play_SFX("Upgrade_Start");
 }
 
 bool Upgrade_System::Is_Active() const
@@ -268,7 +285,7 @@ int Upgrade_System::Get_Weapon_Lock_State() const
 
 void Upgrade_System::Set_Card_Buffer(Card_Buffer Buffer)
 {
-	C_Buffer = Buffer;
+    C_Buffer = Buffer;
 }
 
 Card_Buffer Upgrade_System::Get_Card_Buffer() const
@@ -285,7 +302,6 @@ void Upgrade_System::Apply_Upgrade(const Card_Data& card)
     m_IsActive = false;
     C_Buffer = Card_Buffer::NONE;
     Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
-    Audio_Manager::GetInstance()->Play_SFX("UI_Select");
 
     Debug::D_Out << "[Upgrade] Selected : " << card.Title << std::endl;
 }

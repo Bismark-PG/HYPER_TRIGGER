@@ -46,7 +46,7 @@ public:
     void Draw();
 
     void Create(const DirectX::XMFLOAT3& pos, Billboard_Type Type);
-    void Create_Weapon(const DirectX::XMFLOAT3& pos, WeaponType wType, Billboard_Object** outIcon, Billboard_Object** outBG);
+    void Create_Weapon(const DirectX::XMFLOAT3& pos, WeaponType wType, Billboard_Object** Box_Icon);
     void Create_Effect(const DirectX::XMFLOAT3& pos, int patternID, float scale, Effect_Type Type);
 
     Billboard_Target* Check_Collision(const AABB& box);

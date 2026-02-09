@@ -17,8 +17,9 @@ public:
     {
     }
 
-    virtual void Update(double dt) override
+    virtual void Update(double elapsed_time) override
     {
+        float dt = static_cast<float>(elapsed_time);
     }
 
     void OnHit()

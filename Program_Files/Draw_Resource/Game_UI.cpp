@@ -17,10 +17,11 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <debug_ostream.h>
 using namespace PALETTE;
 
 // --- Texture ID ---
-static int UI_Aim = -1, UI_Damage_Red = -1;
+static int UI_Normal_Aim = -1, UI_Zoom_Aim = -1, UI_Damage_Red = -1;
 static int UI_HP_Bar = -1, UI_HP_Fill = -1, UI_EXP_Bar = -1, UI_EXP_Fill = -1;
 
 // Weapon
@@ -35,6 +36,7 @@ static int UI_Num[10] = { -1 }, UI_Num_Slash = -1;
 // Aim
 static float Aim_X, Aim_Y, Aim_Size, Aim_Radian;
 constexpr float Aim_Rotation_Amount = 0.0f;
+static bool Aiming_Now = false;
 
 // UI Bar Layout
 static float Bar_W, Bar_H, Bar_Size;
@@ -50,10 +52,11 @@ static float EXP_Min_X, EXP_Max_X;
 // Ratios
 static float Current_HP_Ratio = 1.0f, Current_EXP_Ratio = 0.0f;
 
-// Reload
+// Reload UI Parameter
 static float Reload_Rotation = 0.0f;
+static float UI_Reload_Timer = 0.0f;
 constexpr float Reload_Speed_Min = DirectX::XM_2PI; // Min Speed : 1 Lap For 1 Sec
-constexpr float Reload_Speed_Max = DirectX::XM_2PI * A_Double; // Max Speed : 2 Lap For 1 Sec
+constexpr float Reload_Speed_Max = DirectX::XM_2PI * 10.0f; // Max Speed : 10 Lap For 1 Sec
 
 // Ammo
 static const std::deque<WeaponState>* P_Inventory = nullptr;
@@ -142,6 +145,10 @@ void Game_UI_Initialize()
 
     // 9. Clear Inventory Pointer
     P_Inventory = nullptr;
+
+    // 10. Reload UI Parameter
+    UI_Reload_Timer = 0.0f;
+    Reload_Rotation = 0.0f;
 }
 
 void Game_UI_Finalize()
@@ -202,20 +209,22 @@ void Game_UI_Update(double elapsed_time)
         }
     }
 
-    if (Weapon_System::GetInstance().Is_Reloading())
+    bool Reloading = Weapon_System::GetInstance().Is_Reloading();
+    bool Switching = Weapon_System::GetInstance().Is_Switching();
+
+    // Reload And Switching Logic Update
+    if (Reloading || Switching)
     {
-        // Get Reload Progress
-        float Progress = Weapon_System::GetInstance().Get_Reload_State();
+        float Ratio = Weapon_System::GetInstance().Get_Reload_State();
 
-        // Increse Rotation Speed
-        float Speed = Reload_Speed_Min + (Reload_Speed_Max - Reload_Speed_Min) * Progress;
+        float EaseRatio = Ratio * Ratio * Ratio;
 
-        // Set Ratio
-        Reload_Rotation += Speed * dt;
+        float CurrentSpeed = Reload_Speed_Min + (Reload_Speed_Max - Reload_Speed_Min) * EaseRatio;
+
+        Reload_Rotation -= CurrentSpeed * dt;
     }
     else
     {
-        // Not Reload Now
         Reload_Rotation = 0.0f;
     }
 
@@ -238,15 +247,6 @@ void Game_UI_Update(double elapsed_time)
             Is_Damage_Effect_On = false;
             Damage_Alpha = 0.0f;
         }
-    }
-
-    if (Weapon_System::GetInstance().Is_Reloading())
-    {
-        Reload_Rotation += dt* DirectX::XM_2PI * 2.0f;
-    }
-    else
-    {
-        Reload_Rotation = 0.0f;
     }
 }
 
@@ -347,17 +347,27 @@ void Game_UI_Draw()
     }
 
     // -----------------------------------------------------------
-    // 4. Reload And Aim
+    // 4. Reload
     // -----------------------------------------------------------
-    if (Weapon_System::GetInstance().Is_Reloading())
+    if (Weapon_System::GetInstance().Is_Reloading() || Weapon_System::GetInstance().Is_Switching())
     {
         Sprite_Draw(UI_Reload, Aim_X, Aim_Y, Aim_Size, Aim_Size, Reload_Rotation);
     }
 
-    Sprite_Draw(UI_Aim, Aim_X, Aim_Y, Aim_Size, Aim_Size, Aim_Radian, Alpha_T_Quarter);
+    // -----------------------------------------------------------
+    // 5. Aim
+    // -----------------------------------------------------------
+    if (Game_UI_Aiming_Now())
+    {
+        Sprite_Draw(UI_Zoom_Aim, Aim_X, Aim_Y, Aim_Size, Aim_Size, Aim_Radian, Alpha_T_Quarter);
+    }
+    else
+    {
+        Sprite_Draw(UI_Normal_Aim, Aim_X, Aim_Y, Aim_Size, Aim_Size, Aim_Radian, Alpha_T_Quarter);
+    }
 
     // -----------------------------------------------------------
-    // 5. Damager Overlay
+    // 6. Damager Overlay
     // -----------------------------------------------------------
     if (Is_Damage_Effect_On && Damage_Alpha > 0.0f)
     {
@@ -375,7 +385,8 @@ void Game_UI_Texture()
     UI_Damage_Red = Texture_Manager::GetInstance()->GetID("R");
 
 	//----------------Aim Texture----------------//
-	UI_Aim = Texture_Manager::GetInstance()->GetID("Aim");
+    UI_Normal_Aim = Texture_Manager::GetInstance()->GetID("UI_Aim_Normal");
+    UI_Zoom_Aim = Texture_Manager::GetInstance()->GetID("UI_Aim_Zomm");
 
 	//----------------Bar Texture----------------//
 	UI_HP_Bar   = Texture_Manager::GetInstance()->GetID("HP_Bar");
@@ -410,6 +421,16 @@ void Game_UI_Trigger_Damage()
 {
     Is_Damage_Effect_On = true;
     Damage_Effect_Timer = 0.0f;
+}
+
+void Game_UI_Is_Aiming_Mode(bool Is_Aiming)
+{
+    Aiming_Now = Is_Aiming;
+}
+
+bool Game_UI_Aiming_Now()
+{
+    return Aiming_Now;
 }
 
 void Draw_Number_String(const std::string& str, float startX, float startY, float width, float height)

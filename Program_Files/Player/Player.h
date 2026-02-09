@@ -21,6 +21,7 @@ void Player_Initialize(const DirectX::XMFLOAT3& First_POS, const DirectX::XMFLOA
 void Player_Finalize();
 
 void Player_Update(double elapsed_time);
+void Player_Model_Animation_Update(float Time);
 void Player_Draw();
 
 void Player_Reset();
@@ -35,6 +36,8 @@ void Player_OnDamage(int damage);
 void Player_Heal(int amount);
 int Player_Get_HP();
 int Player_Get_MaxHP();
+
+bool Player_Is_Aiming_Now();
 
 // Level UP Logic For Prototype
 void Player_LevelUp();

@@ -25,7 +25,7 @@ void System_Manager::Initialize(HWND hWnd, ID3D11Device* Device, ID3D11DeviceCon
 	// Initialize Texture Tools
 	Texture_Manager::GetInstance()->Init(Device, Context);
 	Game_Texture_Initialize();
-	Model_Manager::GetInstance()->Init(Device, Context);
+	Model_Manager::GetInstance()->Init();
 	Sprite_Initialize(Device, Context);
 	SpriteAni_Initialize();
 	Billboard_Initialize();

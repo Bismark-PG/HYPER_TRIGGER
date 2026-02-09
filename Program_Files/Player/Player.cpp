@@ -54,6 +54,8 @@ static int Player_MaxHP = 100;
 static float Player_Damage = 1.0f;
 
 static bool Player_Is_Dead = false;
+static bool Is_Shoot = false;
+static bool Is_Aiming_Mode = false;
 static bool Is_Game_Over_Sequence = false;
 
 static bool  Is_Invincible = false;     
@@ -70,13 +72,31 @@ constexpr float Bonus_HP_Heal = 0.1f;
 
 static E_PlayerState Current_State = E_PlayerState::IDLE;
 
+// ----------------------------------------------------------
 // static Player Update Logic
-static XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat_Right);;
+// ----------------------------------------------------------
+// --- Movement And Physics System ---
 static void Player_Update_Teleport_System();
 static void Player_Update_Respawn_System(XMVECTOR Velocity);
 static XMVECTOR Player_Update_AABB_System(XMVECTOR Velocity);
+static void Player_Update_Bullet_System();
 
-// If Input Model, Can Change Chara
+// --- Input ---
+static XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat_Right);;
+static void Player_Update_Get_Sprint_Input();
+static void Player_Update_Get_Drop_Item_Input();
+static void Player_Update_Get_Reload_Input();
+static void Player_Update_Get_Mouse_Input();
+
+// --- Animation Model ---
+static void Player_Update_Change_Animation(float dt);
+
+// --- Parameter Geter  ---
+static bool Is_Player_Move();
+static bool Is_Player_Jump();
+static bool Is_Player_Shoot();
+// ----------------------------------------------------------
+
 void Player_Initialize(const XMFLOAT3& First_POS, const XMFLOAT3& First_Front)
 {
 	Player_Pos = First_POS;
@@ -95,6 +115,8 @@ void Player_Initialize(const XMFLOAT3& First_POS, const XMFLOAT3& First_Front)
 	Player_Damage = 1.0f;
 
 	Player_Is_Dead = false;
+	Is_Shoot = false;
+	Is_Aiming_Mode = false;
 	Is_Game_Over_Sequence = false;
 
 	Is_Invincible = false;
@@ -112,7 +134,9 @@ void Player_Update(double elapsed_time)
 {
 	float dt = static_cast<float>(elapsed_time);
 
-	// --- 1. Game Over And Invincible Logic ---
+	// ---------------------------------------------
+	//	 --- 1. Game Over And Invincible Logic ---
+	// ---------------------------------------------
 	if (Is_Game_Over_Sequence)
 	{
 		if (Fade_GetState() == FADE_STATE::FINISHED_OUT)
@@ -139,35 +163,29 @@ void Player_Update(double elapsed_time)
 		}
 	}
 
-	// --- 2. Input & Physics Calculation ---
-	if (KeyLogger_IsTrigger(KK_F4)) // toggle mode << debug
+	// ------------------------
+	//	--- 2. Input Check ---
+	// ------------------------
+	// Get Mouse Input State For Check Fire
+	Player_Update_Get_Mouse_Input();
+
+	if (KeyLogger_IsTrigger(KK_F4)) // toggle mode << debug Need Change
+	{
 		Is_Run_Toggle = !Is_Run_Toggle;
-
-	if (Is_Run_Toggle)
-	{
-		if (KeyLogger_IsTrigger(KK_LEFTSHIFT))
-			Is_Run = !Is_Run;
-	}
-	else
-	{
-		if ((KeyLogger_IsPressed(KK_LEFTSHIFT) && !Is_Run) || (KeyLogger_IsReleased(KK_LEFTSHIFT) && Is_Run))
-			Is_Run = !Is_Run;
 	}
 
-	if (Is_Run)
-	{
-		Player_Speed = Run_Speed  * (1.0f + Bonus_Speed_Ratio);
-	}
-	else
-	{
-		Player_Speed = Walk_Speed * (1.0f + Bonus_Speed_Ratio);
-	}
+	// Sprint (Run) Input
+	Player_Update_Get_Sprint_Input();
 
-	if (elapsed_time > 0.05)
-	{
-		elapsed_time = 0.05;
-	}
+	// Reload Input
+	Player_Update_Get_Reload_Input();
 
+	// Item Pickup Input
+	Player_Update_Get_Drop_Item_Input();
+
+	// ---------------------------------
+	//	--- 3. Physics Calculation ---
+	// ---------------------------------
 	XMVECTOR POS = XMLoadFloat3(&Player_Pos);
 	XMVECTOR Vel = XMLoadFloat3(&Player_Vel);
 
@@ -193,32 +211,8 @@ void Player_Update(double elapsed_time)
 	Dir = XMVector3Normalize(Dir);
 
 	Vel += Dir * Player_Speed * dt;
-	// =====================================================================
-	// Model Swap Logic
-	// Jump > Walk > Idle
-	// =====================================================================
-	if (Is_Jump)
-	{
-		Model_Play_Animation(Player_Model, "Jump");
-		//Audio_Manager::GetInstance()->Play_SFX("Player_Jump"); << Jump Sound
-	}
-	else if (Is_Input_Moving)
-	{
-		Model_Play_Animation(Player_Model, "F_Move");
-
-		Walk_Timer += dt;
-		if (Walk_Timer >= 0.5f)
-		{
-			Model_Play_Animation(Player_Model, "Idle");
-			Walk_Timer = 0.0f;
-		}
-	}
-	else
-	{
-		Walk_Timer = 0.0f;
-		Model_Play_Animation(Player_Model, "Idle");
-	}
-
+	// Animation Model Change
+	Player_Update_Change_Animation(dt);
 
 	// Friction
 	XMVECTOR Horizontal_Vel = XMVectorMultiply(Vel, XMVectorSet(1.0f, 0.0f, 1.0f, 0.0f));
@@ -229,118 +223,42 @@ void Player_Update(double elapsed_time)
 	POS += Vel * dt;
 	XMStoreFloat3(&Player_Pos, POS);
 
-	// --- 3. Collision & Respawn (Physics Correction) ---
+	// Reset Delta Time For Clamping
+	if (dt > 0.05f)
+	{
+		dt = 0.05f;
+	}
+
+	// ------------------------------------------------------
+	//	--- 4. Collision & Respawn (Physics Correction) ---
+	// ------------------------------------------------------
 	Player_Update_Respawn_System(Vel);
 	Vel = Player_Update_AABB_System(Vel);
 	Player_Update_Teleport_System();
 
-	// --- 4. Weapon System ---
-	// Reload Input
-	if (KeyLogger_IsTrigger(KK_R))
-	{
-		Weapon_System::GetInstance().Reload();
-	}
+	// ---------------------------
+	//	--- 5. Weapon System ---
+	// ---------------------------
+	Weapon_System::GetInstance().Update(dt);
 
-	// Item Pickup Input
-	if (KeyLogger_IsTrigger(KK_E))
-	{
-		// Get Player Eye POS & Dir
-		XMFLOAT3 pEyePos = Player_Camera_Get_Current_POS();// Player Eye Position
-		XMFLOAT3 pDir = Player_Camera_Get_Front(); // Player Camera Front Direction
-
-		// Set Request Item (Nearest Weapon In View)
-		ResourceItem* item = Resource_Manager::GetInstance().Get_Nearest_Weapon_In_View(pEyePos, pDir, 5.0f); // Distance 3.0f
-
-		if (item != nullptr)
-		{
-			// Get Weapon
-			if (Weapon_System::GetInstance().AddWeapon(item->W_Type))
-			{
-				// If Success, Deactivate Item
-				item->Active = false;
-
-				// Deactivate Billboard Too
-				if (item->Linked_Icon)
-				{
-					item->Linked_Icon->Deactivate();
-				}
-				if (item->Linked_BG) 
-				{
-					item->Linked_BG->Deactivate();
-				}
-			}
-			else
-			{
-				// If Fail (Weapon Full), Play Error Sound
-				Audio_Manager::GetInstance()->Play_SFX("System_Error");
-			}
-		}
-	}
-
-	Weapon_System::GetInstance().Update(elapsed_time);
+	// Camera Manage Logic
+	Player_Camera_Set_Aiming_Mode(Player_Is_Aiming_Now());
+	Game_UI_Is_Aiming_Mode(Player_Is_Aiming_Now());
 
 	// Shooting Logic
-	bool TryFire = false;
-
-	// Mouse Left Button Check And Automatic Check
-	if (Weapon_System::GetInstance().HasWeapon())
-	{
-		const auto& currentWeapon = Weapon_System::GetInstance().GetCurrentWeapon();
-
-		if (currentWeapon.Spec.IsAutomatic)
-		{
-			if (KeyLogger_IsMousePressed(Mouse_Button::LEFT))
-			{
-				TryFire = true;
-			}
-		}
-		else
-		{
-			if (KeyLogger_IsMouseTrigger(Mouse_Button::LEFT)) 
-			{
-				TryFire = true;
-			}
-		}
-	}
-
-	// Check Fire
-	if (TryFire)
-	{
-		// Logical Fire POS
-		XMFLOAT3 CamPos = Player_Camera_Get_Current_POS();
-		XMFLOAT3 CamDir = Player_Camera_Get_Front();
-
-		// Virtual Fire POS
-		XMFLOAT3 PlayerCenter = Player_Get_POS();
-
-		// Default Damage
-		int BaseDamage = Weapon_System::GetInstance().GetCurrentWeapon().Spec.Damage;
-
-		// Bonus Damage
-		float BonusDamage = Player_Get_Damage_Coefficient();
-
-		// Final Damage
-		int FinalDamage = static_cast<int>(BaseDamage * BonusDamage);
-
-		// In Now Hard-Coeding Logic, After Need Player Fire POS Logic.
-		XMVECTOR vP_Pos = XMLoadFloat3(&PlayerCenter);
-		XMVECTOR vP_Front = XMLoadFloat3(&Player_Get_Front());
-		XMVECTOR vUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-		XMVECTOR vRight = XMVector3Cross(vUp, vP_Front); 
-		XMVECTOR vGunPos = vP_Pos + (vUp * 1.5f) + (vRight * 0.5f) + (vP_Front * 0.5f);
-		XMFLOAT3 GunPos;
-		XMStoreFloat3(&GunPos, vGunPos);
-
-		// Make Bullet, Fire!
-		Weapon_System::GetInstance().Fire(GunPos, CamPos, CamDir, FinalDamage);
-	}
+	Player_Update_Bullet_System();
 
 	// Save Final Front & Vel
 	XMStoreFloat3(&Player_Front, Flat_Front);
 	XMStoreFloat3(&Player_Vel, Vel);
 
 	// Update Animation Time
-	Model_Update_Animation(Player_Model, dt);
+	Player_Model_Animation_Update(dt);
+}
+
+void Player_Model_Animation_Update(float Time)
+{
+	Model_Update_Animation(Player_Model, Time);
 }
 
 void Player_Draw()
@@ -370,6 +288,7 @@ void Player_Draw()
 	if (Get_Debug_Mode_State())
 	{
 		Debug_Collision_Draw(Player_Get_AABB(), Red);
+		ModelDraw_Bone(Player_Model, world);
 	}
 }
 
@@ -386,6 +305,8 @@ void Player_Reset()
 	Player_Damage = 1.0f;
 
 	Player_Is_Dead = false;
+	Is_Shoot = false;
+	Is_Aiming_Mode = false;
 	Is_Game_Over_Sequence = false;
 
 	// 3. Invincible Reset
@@ -440,6 +361,8 @@ void Player_OnDamage(int damage)
 	{
 		Player_HP = 0;
 		Player_Is_Dead = true;
+		Is_Shoot = false;
+		Is_Aiming_Mode = false;
 
 		Is_Game_Over_Sequence = true;
 		Fade_Start(2.0f, true, { 1.0f, 0.0f, 0.0f, 1.0f });
@@ -461,6 +384,11 @@ int Player_Get_HP()
 int Player_Get_MaxHP()
 {
 	return Player_MaxHP;
+}
+
+bool Player_Is_Aiming_Now()
+{
+	return Is_Aiming_Mode;
 }
 
 void Player_LevelUp()
@@ -500,36 +428,8 @@ void Player_Add_HP_Bonus(float amount)
 
 // ----------------------------------------------------------------------------------------------------------------
 //												Player Update Logic
+//											  --- Movement System ---
 // ----------------------------------------------------------------------------------------------------------------
-
-XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat_Right)
-{
-	// 1. Vector Init
-	XMVECTOR InputDir = XMVectorZero();
-
-	// 2. Get Vector From Key Input
-	if (KeyLogger_IsPressed(KK_W)) InputDir += Flat_Front;
-	if (KeyLogger_IsPressed(KK_S)) InputDir -= Flat_Front;
-	if (KeyLogger_IsPressed(KK_D)) InputDir += Flat_Right;
-	if (KeyLogger_IsPressed(KK_A)) InputDir -= Flat_Right;
-
-	// 3. Get Length Squared
-	XMVECTOR LengthSq = XMVector3LengthSq(InputDir);
-	float lenSq = XMVectorGetX(LengthSq);
-
-	// 4. If Moved, Normalize And Return
-	if (lenSq > 0.0001f)
-	{
-		Is_Input_Moving = true;
-		return Dir + XMVector3Normalize(InputDir);
-	}
-	else
-	{
-		Is_Input_Moving = false;
-		return Dir;
-	}
-}
-
 static void Player_Update_Teleport_System()
 {
 	float Half_Size_X = Mash_Field_Get_Size_X() * 0.5f;
@@ -674,4 +574,229 @@ static XMVECTOR Player_Update_AABB_System(XMVECTOR Velocity)
 	}
 
 	return Vel;
+}
+
+void Player_Update_Bullet_System()
+{
+	if (!Is_Player_Shoot()) return; // If Not Fired, Do Not Make Bullet
+
+	// Logical Fire POS
+	XMFLOAT3 Cam_Pos = Player_Camera_Get_Current_POS();
+	XMFLOAT3 Cam_Dir = Player_Camera_Get_Front();
+
+	// Virtual Fire POS
+	XMFLOAT3 Player_Center = Player_Get_POS();
+
+	// Default Damage
+	int Base_Damage = Weapon_System::GetInstance().GetCurrentWeapon().Spec.Damage;
+
+	// Bonus Damage
+	float Bonus_Damage = Player_Get_Damage_Coefficient();
+
+	// Final Damage
+	int Final_Damage = static_cast<int>(Base_Damage * Bonus_Damage);
+
+	// In Now Hard-Coeding Logic, After Need Player Fire POS Logic.
+	XMVECTOR vP_Pos = XMLoadFloat3(&Player_Center);
+	XMVECTOR vP_Front = XMLoadFloat3(&Player_Get_Front());
+	XMVECTOR vUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMVECTOR vRight = XMVector3Cross(vUp, vP_Front);
+	XMVECTOR vGun_Pos = vP_Pos + (vUp * 1.5f) + (vRight * 0.5f) + (vP_Front * 0.5f);
+	XMFLOAT3 Gun_Pos;
+	XMStoreFloat3(&Gun_Pos, vGun_Pos);
+
+	// Make Bullet, Fire!
+	Weapon_System::GetInstance().Fire(Gun_Pos, Cam_Pos, Cam_Dir, Final_Damage);
+}
+
+// ----------------------------------------------------------------------------------------------------------------
+//												--- Input ---
+// ----------------------------------------------------------------------------------------------------------------
+XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat_Right)
+{
+	// 1. Vector Init
+	XMVECTOR InputDir = XMVectorZero();
+
+	// 2. Get Vector From Key Input
+	if (KeyLogger_IsPressed(KK_W)) InputDir += Flat_Front;
+	if (KeyLogger_IsPressed(KK_S)) InputDir -= Flat_Front;
+	if (KeyLogger_IsPressed(KK_D)) InputDir += Flat_Right;
+	if (KeyLogger_IsPressed(KK_A)) InputDir -= Flat_Right;
+
+	// 3. Get Length Squared
+	XMVECTOR LengthSq = XMVector3LengthSq(InputDir);
+	float lenSq = XMVectorGetX(LengthSq);
+
+	// 4. If Moved, Normalize And Return
+	if (lenSq > 0.0001f)
+	{
+		Is_Input_Moving = true;
+		return Dir + XMVector3Normalize(InputDir);
+	}
+	else
+	{
+		Is_Input_Moving = false;
+		return Dir;
+	}
+}
+
+void Player_Update_Get_Sprint_Input()
+{
+	if (Is_Run_Toggle)
+	{
+		if (KeyLogger_IsTrigger(KK_LEFTSHIFT))
+			Is_Run = !Is_Run;
+	}
+	else
+	{
+		if ((KeyLogger_IsPressed(KK_LEFTSHIFT) && !Is_Run) || (KeyLogger_IsReleased(KK_LEFTSHIFT) && Is_Run))
+			Is_Run = !Is_Run;
+	}
+
+	if (Is_Run)
+	{
+		Player_Speed = Run_Speed * (A_Origin + Bonus_Speed_Ratio);
+	}
+	else
+	{
+		Player_Speed = Walk_Speed * (A_Origin + Bonus_Speed_Ratio);
+	}
+}
+
+void Player_Update_Get_Drop_Item_Input()
+{
+	if (KeyLogger_IsTrigger(KK_E))
+	{
+		// Get Player Eye POS & Dir
+		XMFLOAT3 pEyePos = Player_Camera_Get_Current_POS();// Player Eye Position
+		XMFLOAT3 pDir = Player_Camera_Get_Front(); // Player Camera Front Direction
+
+		// Set Request Item (Nearest Weapon In View)
+		ResourceItem* item = Resource_Manager::GetInstance().Get_Nearest_Weapon_In_View(pEyePos, pDir, 5.0f); // Distance 3.0f
+
+		if (item != nullptr)
+		{
+			// Get Weapon
+			if (Weapon_System::GetInstance().AddWeapon(item->W_Type))
+			{
+				// If Success, Deactivate Item
+				item->Active = false;
+
+				// Deactivate Billboard Too
+
+				if (item->Drop_Box_Icon_Link)
+				{
+					item->Drop_Box_Icon_Link->Deactivate();
+				}
+			}
+			else
+			{
+				Audio_Manager::GetInstance()->Play_SFX("Buffer_Denied");
+			}
+		}
+	}
+}
+
+void Player_Update_Get_Reload_Input()
+{
+	if (KeyLogger_IsTrigger(KK_R))
+	{
+		Weapon_System::GetInstance().Reload();
+	}
+}
+
+void Player_Update_Get_Mouse_Input()
+{
+	// Get Now Weapom Info
+	bool isAuto = false;
+
+	if (Weapon_System::GetInstance().HasWeapon())
+	{
+		isAuto = Weapon_System::GetInstance().GetCurrentWeapon().Spec.IsAutomatic;
+	}
+
+	// Check Fire Input
+	if (isAuto)
+	{
+		if (KeyLogger_IsMousePressed(Mouse_Button::LEFT))
+		{
+			Is_Shoot = true;
+		}
+		else
+		{
+			Is_Shoot = false;
+		}
+	}
+	else
+	{
+		if (KeyLogger_IsMouseTrigger(Mouse_Button::LEFT))
+		{
+			Is_Shoot = true;
+		}
+		else
+		{
+			Is_Shoot = false;
+		}
+	}
+
+	// Check Aim Input
+	if (KeyLogger_IsMousePressed(Mouse_Button::RIGHT))
+	{
+		Is_Aiming_Mode = true;
+	}
+	else
+	{
+		Is_Aiming_Mode = false;
+	}
+}
+
+// ----------------------------------------------------------------------------------------------------------------
+//											--- Animation Model ---
+// ----------------------------------------------------------------------------------------------------------------
+void Player_Update_Change_Animation(float dt)
+{
+	// =====================================================================
+	// Animation Swap Logic
+	// Jump > Walk > Idle
+	// =====================================================================
+
+	if (Is_Player_Jump())
+	{
+		Model_Play_Animation(Player_Model, "Jump");
+		//Audio_Manager::GetInstance()->Play_SFX("Player_Jump"); << Jump Sound
+	}
+	else if (Is_Player_Move())
+	{
+		Model_Play_Animation(Player_Model, "F_Move");
+
+		Walk_Timer += dt;
+		if (Walk_Timer >= 0.5f)
+		{
+			Model_Play_Animation(Player_Model, "Idle");
+			Walk_Timer = 0.0f;
+		}
+	}
+	else
+	{
+		Walk_Timer = 0.0f;
+		Model_Play_Animation(Player_Model, "Idle");
+	}
+}
+
+// ----------------------------------------------------------------------------------------------------------------
+//											--- Parameter Geter  ---
+// ----------------------------------------------------------------------------------------------------------------
+bool Is_Player_Move()
+{
+	return Is_Input_Moving;
+}
+
+bool Is_Player_Jump()
+{
+	return Is_Jump;
+}
+
+bool Is_Player_Shoot()
+{
+	return Is_Shoot;
 }

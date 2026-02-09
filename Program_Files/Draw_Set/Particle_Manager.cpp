@@ -150,24 +150,24 @@ void Particle_Manager::Spawn_Spark(const DirectX::XMFLOAT3& pos)
         vel.y = RandomFloatMinus1To1();
         vel.z = RandomFloatMinus1To1();
 
-        XMVECTOR vVel = XMLoadFloat3(&vel);
-        vVel = XMVector3Normalize(vVel);
+        XMVECTOR Vec_Vel = XMLoadFloat3(&vel);
+        Vec_Vel = XMVector3Normalize(Vec_Vel);
 
         // 2. Random Speed (10 ~ 20)
-        float speed = 10.0f + RandomFloat() * 10.0f;
-        vVel *= speed;
-        XMStoreFloat3(&vel, vVel);
+        float Speed = 10.0f + RandomFloat() * 10.0f;
+        Vec_Vel *= Speed;
+        XMStoreFloat3(&vel, Vec_Vel);
 
         // 3. Random Color (White ~ Yellow)
-        float blue = 0.5f + RandomFloat() * 0.5f;
-        XMFLOAT4 color = { 1.0f, 1.0f, blue, 1.0f };
+        float Blue = 0.5f + RandomFloat() * 0.5f;
+        XMFLOAT4 Color = { 1.0f, 1.0f, Blue, 1.0f };
 
         // 4. Random Life Time (0.1 ~ 0.2)
-        float life = 0.1f + RandomFloat() * 0.1f;
+        float Life = 0.1f + RandomFloat() * 0.1f;
 
         // 5. Random Size (0.1 ~ 0.2)
-        float size = 0.1f + RandomFloat() * 0.1f;
+        float Size = 0.1f + RandomFloat() * 0.1f;
 
-        Spawn(pos, vel, color, life, size, Particle_Type::SPARK);
+        Spawn(pos, vel, Color, Life, Size, Particle_Type::SPARK);
     }
 }

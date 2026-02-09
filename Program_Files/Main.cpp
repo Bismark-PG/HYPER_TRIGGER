@@ -28,6 +28,10 @@ using namespace DirectX;
 int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPSTR IpCmdline, _In_ int nCmdShow)
 {
+	// Do Not Show Error For Not Used Resource, Not Necessary
+	UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(IpCmdline);
+
 	// Make Game Loop & Message Loop
 	MSG Message = {};
 

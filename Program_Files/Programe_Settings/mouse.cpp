@@ -13,7 +13,6 @@
 // http://go.microsoft.com/fwlink/?LinkID=615561
 //--------------------------------------------------------------------------------------
 #include "mouse.h"
-
 #include <windowsx.h>
 #include <assert.h>
 #include "Sprite.h"
@@ -389,7 +388,10 @@ void Return_Mouse_Movement()
 
 void Mouse_UI_Draw(Mouse_Info Info)
 {
-    Sprite_Draw(Mouse_UI_Tex, Info.X, Info.Y, Info.Size, Info.Size);
+    float Mouse_Half = Info.Size * 0.5f;
+    float Mouse_X = Info.X - Mouse_Half, Mouse_Y = Info.Y - Mouse_Half;
+
+    Sprite_Draw(Mouse_UI_Tex, Mouse_X, Mouse_Y, Info.Size, Info.Size);
 
     Debug::D_Out << "[Mouse] X : " << Info.X << " Y : " << Info.Y << std::endl;
 }

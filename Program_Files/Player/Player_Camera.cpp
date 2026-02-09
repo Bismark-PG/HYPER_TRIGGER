@@ -17,24 +17,46 @@
 
 using namespace DirectX;
 
-static float Camera_Yaw = 0.0f;
-static float Camera_Pitch = 0.0f;
-static float Camera_Near_Z = 0.1f;
-static float Camera_Far_z = 100.0f;
-static float Camera_FOV = XMConvertToRadians(70.0f);
-static XMFLOAT4X4 Camera_View_mtx = {};
+// Player Camera Parameter
+static float Camera_Yaw = 0.0f, Camera_Pitch = 0.0f;
+static float Camera_Near_Z = 0.1f,  Camera_Far_z = 100.0f;
+constexpr float Change_Lerp_Speed = 15.0f;
 
-static float Camera_Distance = 3.5f;
+// Normal State (Base)
+static const float Dist_Normal = 3.5f;
+static const float FOV_Normal = XMConvertToRadians(70.0f);
+
+// Aim State (ADS)
+static const float Dist_Aim = 1.5f;  // Close Up
+static const float FOV_Aim = XMConvertToRadians(45.0f); // Zoom In
+static const float Sens_Mult_Aim = 0.5f; // 50% Sensitivity
+
+// Current Values
+static float Camera_Distance = Dist_Normal;
+static float Camera_FOV = FOV_Normal;
 static float Camera_Height = 2.5f;
-static XMFLOAT3 Camera_POS   = {};
+
+// Target Values
+static float Target_Dist = Dist_Normal;
+static float Target_FOV = FOV_Normal;
+static float Target_Sens_Mult = 1.0f; // Multiplier for Sensitivity
+
+// Sensitivity
+static float Mouse_Sensitivity = 0.01f; // Base Setting (From Option)
+static float Apply_Sensitivity = 0.01f; // Real used value (Lerped)
+
+// --- Vectors & Matrices ---
+static XMFLOAT4X4 Camera_View_mtx = {};
+static XMFLOAT3 Camera_POS = {};
 static XMFLOAT3 Camera_Front = {};
+static XMFLOAT3 Current_Camera_Pos = {};
+
+// --- Sights (Shoulder View) ---
 static Player_Sights Current_Sights = {};
 static float Camera_Sights_Offset = {};
 static float Is_Camera_Sights_Changed = false;
 
-static XMFLOAT3 Current_Camera_Pos = {};
-static float Mouse_Sensitivity = 0.01f;
-
+// --- Modes ---
 static bool Is_Menu_Mode = false;
 static XMFLOAT3 Menu_Cam_Pos = { 0.0f, 0.0f, 0.0f };
 static XMFLOAT3 Menu_Cam_Target = { 0.0f, 0.0f, 0.0f };
@@ -47,7 +69,15 @@ void Player_Camera_Initialize()
     Camera_Sights_Offset = 1.5f;
 
     Current_Camera_Pos = { 0.0f, 0.0f, 0.0f };
+
+    // Default Sensitivity Init
     Mouse_Sensitivity = 0.01f;
+    Apply_Sensitivity = Mouse_Sensitivity;
+
+    // Default Targets
+    Target_Dist = Dist_Normal;
+    Target_FOV = FOV_Normal;
+    Target_Sens_Mult = 1.0f;
 }
 
 void Player_Camera_Finalize()
@@ -58,6 +88,7 @@ void Player_Camera_Update(double elapsed_time)
 {
     float dt = static_cast<float>(elapsed_time);
 
+    // --- Menu Mode Logic ---
     if (Is_Menu_Mode)
     {
         XMVECTOR P = XMLoadFloat3(&Menu_Cam_Pos);
@@ -83,12 +114,28 @@ void Player_Camera_Update(double elapsed_time)
         return;
     }
 
+    // --- Shoulder View Swap ---
     if (Is_Camera_Sights_Changed)
     {
         Player_Camera_Update_Sights();
         Is_Camera_Sights_Changed = false;
     }
 
+    // --- ADS (Aim) Interpolation ---
+    float Lerp_Speed = Change_Lerp_Speed * dt;
+
+    // Distance Lerp
+    Camera_Distance += (Target_Dist - Camera_Distance) * Lerp_Speed;
+
+    // FOV Lerp
+    Camera_FOV += (Target_FOV - Camera_FOV) * Lerp_Speed;
+
+    // Sensitivity Lerp
+    // Calculate Target Real Sensitivity (Base Setting * Multiplier)
+    float Target_Real_Sens = Mouse_Sensitivity * Target_Sens_Mult;
+    Apply_Sensitivity += (Target_Real_Sens - Apply_Sensitivity) * Lerp_Speed;
+
+    // --- Rotation Logic ---
     // Get Mouse Movement
     float mouseMoveX = KeyLogger_GetMouse_MoveX() * Mouse_Sensitivity;
     float mouseMoveY = KeyLogger_GetMouse_MoveY() * Mouse_Sensitivity;
@@ -103,6 +150,7 @@ void Player_Camera_Update(double elapsed_time)
     // Make Rotation
     XMMATRIX rotation = XMMatrixRotationRollPitchYaw(Camera_Pitch, Camera_Yaw, 0);
 
+    // --- Position Calculation ---
     // Get Player POS
     XMVECTOR playerPos = XMLoadFloat3(&Player_Get_POS());
 
@@ -121,6 +169,7 @@ void Player_Camera_Update(double elapsed_time)
     XMVECTOR finalCameraPos = baseCameraPos + shiftVector;
     XMVECTOR finalTargetPos = baseTargetPos + shiftVector;
 
+    // --- Matrix Update ---
     // Make View Matrix
     XMMATRIX mtxView = XMMatrixLookAtLH(finalCameraPos, finalTargetPos, { 0.0f,1.0f,0.0f });
     XMStoreFloat4x4(&Camera_View_mtx, mtxView);
@@ -218,7 +267,25 @@ void Player_Camera_Change_Sights()
     Is_Camera_Sights_Changed = true;
 }
 
-DirectX::XMFLOAT4X4& PlayerCamera_GetViewMatrix()
+void Player_Camera_Set_Aiming_Mode(bool Is_Aiming)
+{
+    if (Is_Aiming)
+    {
+        Target_Dist = Dist_Aim;
+        Target_FOV = FOV_Aim;
+        Target_Sens_Mult = Sens_Mult_Aim;
+
+        // Player_Camera_Set_Sights(Player_Sights::Right); // View Lock
+    }
+    else
+    {
+        Target_Dist = Dist_Normal;
+        Target_FOV = FOV_Normal;
+        Target_Sens_Mult = 1.0f;
+    }
+}
+
+DirectX::XMFLOAT4X4& Player_Camera_Get_View_Matrix()
 {
     return Camera_View_mtx;
 }
@@ -232,3 +299,4 @@ float Get_Mouse_Sensitivity()
 {
     return Mouse_Sensitivity;
 }
+ 

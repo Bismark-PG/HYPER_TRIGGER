@@ -116,7 +116,7 @@ public:
             float dot = XMVectorGetX(XMVector3Dot(vToBullet, vCamFront));
 
             // Out Of Screen, Bullect Dead
-            if (dot < 0.2f)
+            if (dot < 0.2f) // 1.0f = Front(0), 0.0f = Horizon(90), -1.0 = Back(180)
             {
                 m_IsDead = true;
             }
@@ -128,9 +128,6 @@ public:
         while (m_TrailTimer >= m_TrailInterval)
         {
             m_TrailTimer -= m_TrailInterval;
-
-            XMVECTOR Dir = XMLoadFloat3(&m_Direction);
-            XMVECTOR vTrailDir = -Dir;
 
             // LifeTime : 0.2 ~ 0.3, Size : 0.1 ~ 0.2
             Particle_Manager::GetInstance().Spawn(
@@ -252,8 +249,8 @@ private:
             }
 
             // Ground Collision
-            float groundY = Mash_Field_Get_Height(CheckPos.x, CheckPos.z);
-            if (CheckPos.y < groundY)
+            float Ground_Y = Mash_Field_Get_Height(CheckPos.x, CheckPos.z);
+            if (CheckPos.y < Ground_Y)
             {
                 m_HitWall = true;
                 XMStoreFloat3(&m_TargetPosition, Ray_Pos);

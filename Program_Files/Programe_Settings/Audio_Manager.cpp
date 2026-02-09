@@ -28,11 +28,30 @@ public:
 
     void OnStreamEnd() override {}
     void OnVoiceProcessingPassEnd() override {}
-    void OnVoiceProcessingPassStart(UINT32 BytesRequired) override {}
-    void OnBufferStart(void* pBufferContext) override {}
-    void OnVoiceError(void* pBufferContext, HRESULT Error) override {}
+    void OnVoiceProcessingPassStart(UINT32 BytesRequired) override
+    {
+        // Do Not Show Error For Not Used Resource, Not Necessary
+        UNREFERENCED_PARAMETER(BytesRequired);
+    }
+
+    void OnBufferStart(void* pBufferContext) override
+    {
+        // Do Not Show Error For Not Used Resource, Not Necessary
+        UNREFERENCED_PARAMETER(pBufferContext);
+    }
+
+    void OnVoiceError(void* pBufferContext, HRESULT Error) override
+    {
+        // Do Not Show Error For Not Used Resource, Not Necessary
+        UNREFERENCED_PARAMETER(pBufferContext);
+        UNREFERENCED_PARAMETER(Error);
+    }
+
     void OnLoopEnd(void* pBufferContext) override
     {
+        // Do Not Show Error For Not Used Resource, Not Necessary
+        UNREFERENCED_PARAMETER(pBufferContext);
+
         if (m_pManager)
         {
             auto Now = std::chrono::high_resolution_clock::now();
@@ -429,6 +448,70 @@ void Audio_Manager::Set_Layer_Volume(const std::string& name, float volume)
         }
     }
 }
+
+void Audio_Manager::Play_Loop_SFX(const std::string& name)
+{
+    // Prevent Duplicate Play
+    if (m_LoopingVoices.find(name) != m_LoopingVoices.end())
+    {
+        return; // Already playing
+    }
+
+    // Find Sound Data
+    auto it = SFXs.find(name);
+    if (it == SFXs.end())
+    {
+        Debug::D_Out << "[Audio Error] Loop SFX Not Found: " << name << std::endl;
+        return;
+    }
+
+    // Create Voice
+    IXAudio2SourceVoice* pSourceVoice = nullptr;
+    if (FAILED(X_Audio->CreateSourceVoice(&pSourceVoice, &it->second.WAVE_Format)))
+    {
+        return;
+    }
+
+    // Submit Buffer (Infinite Loop)
+    XAUDIO2_BUFFER buffer = { 0 };
+    buffer.pAudioData = it->second.Data;
+    buffer.Flags = XAUDIO2_END_OF_STREAM;
+    buffer.AudioBytes = it->second.Length;
+    buffer.LoopCount = XAUDIO2_LOOP_INFINITE; // Infinite
+
+    if (FAILED(pSourceVoice->SubmitSourceBuffer(&buffer)))
+    {
+        pSourceVoice->DestroyVoice();
+        return;
+    }
+
+    // Start & Store
+    pSourceVoice->SetVolume(Target_SFX_Volume);
+    pSourceVoice->Start(0);
+
+    m_LoopingVoices[name] = pSourceVoice;
+}
+
+void Audio_Manager::Stop_Loop_SFX(const std::string& name)
+{
+    auto it = m_LoopingVoices.find(name);
+    if (it != m_LoopingVoices.end())
+    {
+        // Stop & Destroy
+        it->second->Stop();
+        it->second->FlushSourceBuffers();
+        it->second->DestroyVoice();
+
+        // Remove from map
+        m_LoopingVoices.erase(it);
+    }
+}
+
+bool Audio_Manager::Is_Playing_Loop_SFX(const std::string& name)
+{
+    return (m_LoopingVoices.find(name) != m_LoopingVoices.end());
+}
+
 bool Audio_Manager::Is_BGM_Loop_Just_Finished()
 {
     if (Is_Loop_Flag)
