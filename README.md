@@ -47,7 +47,7 @@ Feedback is always welcome!
 ---
 
 > ### ⁉️ Known Issues
->   + **Bug** : Buuuugs.
+>   + **Not Found** : Mayde..?
 >
 > ### 🗃️ Planned Improvements
 >   + **Level Design & AI Pathfinding** : Designing complex map layouts with strategic cover and implementing the **A* (A-Star) algorithm** for enemies to intelligently navigate obstacles and pursue the player.
@@ -79,7 +79,7 @@ Feedback is always welcome!
 
 ## ■ BGM / SFX ■
 
-### ◆ [Name](Link)
+### ◆ [P.Ray](https://www.youtube.com/@prayofficial)
 - All BGM
 
 ### ◆ [効果音ラボ (Sound Effect Lab)](https://soundeffect-lab.info/)
@@ -100,5 +100,80 @@ Feedback is always welcome!
 ## 💻 Code Snippet
 
 ```cpp
-// Code Snippet
+// Animation Bone Node Code Snippet
+	std::string name = node->mName.C_Str();
+
+	// Make Transform Matrix (If No Animation, Use Node Transform)
+	// Original Transform (T-Pose)
+	XMMATRIX nodeTransform = XMMatrixTranspose(XMMATRIX(&node->mTransformation.a1));
+
+	const aiAnimation* anim = model->CurrentAnim;
+	const aiNodeAnim* channel = FindNodeAnim(anim, name);
+
+	if (channel)
+	{
+		unsigned int posIndex = static_cast<unsigned int>(animTime) % channel->mNumPositionKeys;
+		unsigned int rotIndex = static_cast<unsigned int>(animTime) % channel->mNumRotationKeys;
+		unsigned int scaleIndex = channel->mNumScalingKeys > 0 ? static_cast<unsigned int>(animTime) % channel->mNumScalingKeys : 0;
+
+		aiVector3D POS = channel->mPositionKeys[posIndex].mValue;
+		aiQuaternion Rotation = channel->mRotationKeys[rotIndex].mValue;
+		aiVector3D Scale(1, 1, 1);
+
+		if (channel->mNumScalingKeys > 0)
+			Scale = channel->mScalingKeys[scaleIndex].mValue;
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// Function : Model Position, Rotation Convert To DirectX Math
+// ---------------------------------------------------------------------------------------------------------------------------
+		// -------------------------------------------------------------------------------------------------------------------
+		// Step 1 : Detail Bone Detection
+		// -------------------------------------------------------------------------------------------------------------------
+		// [B]asic Types]
+		bool isHips = (name.find("Hips") != std::string::npos) || (name.find("Root") != std::string::npos);
+		bool isClavicle = (name.find("Shoulder") != std::string::npos);
+
+		// [Sides]
+		bool isLeft = (name.find("Left") != std::string::npos) || (name.find("_L") != std::string::npos);
+		bool isRight = (name.find("Right") != std::string::npos) || (name.find("_R") != std::string::npos);
+
+		// [Arm]
+		bool isForeArm = (name.find("ForeArm") != std::string::npos);
+		bool isUpperArm = !isForeArm && !isClavicle && (name.find("Arm") != std::string::npos);
+
+		// [Hand]
+		bool isFinger = (name.find("Thumb") != std::string::npos) || (name.find("Index") != std::string::npos) ||
+			(name.find("Middle") != std::string::npos) || (name.find("Ring") != std::string::npos) ||
+			(name.find("Pinky") != std::string::npos);
+		bool isHand = !isFinger && (name.find("Hand") != std::string::npos);
+
+		// [Leg]
+		bool isUpperLeg = (name.find("UpLeg") != std::string::npos);
+		bool isLowerLeg = !isUpperLeg && (name.find("Leg") != std::string::npos);
+		bool isFoot = (name.find("Foot") != std::string::npos);
+		bool isToe = (name.find("Toe") != std::string::npos);
+
+		// -------------------------------------------------------------------------------------------------------------------
+		// Step 2 : Attach To Bone
+		// If Not Hips, Ignore Position, Use Model Root Position
+		// -------------------------------------------------------------------------------------------------------------------
+
+		if (isHips)
+		{
+			POS.x = 0.0f;
+			POS.z = 0.0f;
+			POS.y += g_Model_Root_Y;
+		}
+		else
+		{
+			// If Hips Is Not, Use Original Position For Bone Attachment
+			POS.x = node->mTransformation.a4;
+			POS.y = node->mTransformation.b4;
+			POS.z = node->mTransformation.c4;
+
+			// Code For Ground Level Fix (Y Position)
+			// Need To Jump Or Move UpDown, Use Hips Y Position
+			// POS.y = node->mTransformation.b4; // Keep Y Position For Ground Level
+		}
+//......
 ```
