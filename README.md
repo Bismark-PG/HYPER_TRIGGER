@@ -37,7 +37,7 @@ Feedback is always welcome!
 - Prototype Completed!
    + Implemented core loop : Battle -> Upgrade -> Loop -> TimeOut.
  
-### v1.0 (2026.02.12)
+### v1.0 (2026.02.13)
 - Initial Release!
    + Fixing bugs in stage 5 and improving the ending sequence.
 
