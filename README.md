@@ -93,7 +93,10 @@ Feedback is always welcome!
 
 ## ■ Reference Games ■
 
-- [Name](Link)
+- [PUBG: Battlegrounds](https://en.wikipedia.org/wiki/PUBG:_Battlegrounds)
+- [Vampire Survivors](https://en.wikipedia.org/wiki/Vampire_Survivors)
+- [Slay the Spire](https://en.wikipedia.org/wiki/Slay_the_Spire)
+- [HoloCure – Save the Fans!](https://en.wikipedia.org/wiki/HoloCure_%E2%80%93_Save_the_Fans!)
 
 ---
 
