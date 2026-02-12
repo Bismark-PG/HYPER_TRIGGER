@@ -5,18 +5,18 @@
 	Project : DirectX 3D Sample
 
 	Author : Choi HyungJoon
-	Date : 2025. 01. 13
-	Version : Prototype
-	Note : 
+	Date : 2026. 02. 13
+	Version : 1.0.0
+	Note : Initial Release!
 
 	Version List :
 		Date : 2026. 01. 13
 		Version : Prototype
 		Note : Prototype Completed
 
-		Date : 2026. 00. 00
+		Date : 2026. 02. 13
 		Version : 1.0.0
-		Note : not yet :)
+		Note : Initial Release!
 
 ==============================================================================*/
 #define WIN32_LEAN_AND_MEAN
