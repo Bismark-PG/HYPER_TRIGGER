@@ -1,19 +1,28 @@
 # ⚡ HYPER TRIGGER
 
-- **DirectX 11 Custom Engine 3D Roguelike TPS**
+- **A high-speed 3D Roguelike TPS featuring a dynamic BGM system that reacts to weapon changes.**
 
-Index.
+I plan to continue updating the project to expand the depth of the Roguelike gameplay.\
+Feedback is always welcome!
 
 ## 🔑 Key Features
 
-- **Point**
-  + Pointer
+- **Efficient Object Pooling System**
+  + Implemented **Object Pooling** to manage **numerous active objects**. (e.g. : Bullets, Enemies, Particles, etc)
+  + Ensures **stable framerates** by preventing performance drops caused by frequent memory allocation and deallocation.
+
+- **Real-time Animation Debugging Tools**
+  + Integrated **ImGui** to build custom tools for real-time bone control and animation blending, significantly boosting development efficiency.
+
+- **Dynamic Audio Module (XAudio2)**
+  + Developed a custom audio module using **DirectX XAudio2** and **std::chrono** for high-precision timing.
+  + Accurately calculates loop points to enable seamless BGM layering that reacts instantly to gameplay changes.
 
 ## 🛠️ Development Environment
 
-* **Language** : C/C++
-* **Library** : DirectX 11, ImGui, Assimp
-* **IDE** : Visual Studio, Adobe Photoshop
+* **Language** : C/C++, HLSL
+* **Library** : DirectX 11, ImGui, Assimp, DirectXTK, XAudio2
+* **IDE & Tools** : Visual Studio, Adobe Photoshop
 * **Target Platform:** PC (Windows)
 * **Development start date** : 2025.12.11
 
@@ -28,7 +37,7 @@ Index.
 - Prototype Completed!
    + Implemented core loop : Battle -> Upgrade -> Loop -> TimeOut.
  
-### v1.0 (2026.02.00)
+### v1.0 (2026.02.12)
 - Initial Release!
    + Fixing bugs in stage 5 and improving the ending sequence.
 
@@ -41,7 +50,8 @@ Index.
 >   + **Bug** : Buuuugs.
 >
 > ### 🗃️ Planned Improvements
->   + **Enemy AI Upgrade** : Introducing Behavior Trees for more complex enemy patterns.
+>   + **Level Design & AI Pathfinding** : Designing complex map layouts with strategic cover and implementing the **A* (A-Star) algorithm** for enemies to intelligently navigate obstacles and pursue the player.
+>   + **Game Design Depth** : Adding weapon-specific unique upgrades and expanding the card pool to deepen the Roguelike experience.
 >
 > ### 📬 Received Feedback
 >  + ~~***(I`m Waiting!)***~~
