@@ -11,10 +11,17 @@
 #include <debug_ostream.h>
 using namespace DirectX;
 
+constexpr float Box_Icon_LifeTime = 15.0f;
+
 void Billboard_Manager::Init()
 {
-    m_ObjList.clear();
+    m_ObjectPool.clear();
     m_EffectPool.clear();
+
+    for (int i = 0; i < MAX_OBJECT_POOL; ++i)
+    {
+        m_ObjectPool.push_back(new Billboard_Object(-1, { 0,0,0 }, 1.0f, 1.0f));
+    }
 
     for (int i = 0; i < MAX_EFFECT_POOL; ++i)
     {
@@ -22,11 +29,9 @@ void Billboard_Manager::Init()
     }
 
     int texID = Texture_Manager::GetInstance()->GetID("Enemy_Real_Explosion");
-
     if (texID != -1)
     {
         XMUINT2 patternSize = { 64, 64 };
-
         m_ExplosionPatternID = SpriteAni_Get_Pattern_Info(texID, 16, 4, 0.05, patternSize, { 0, 0 }, false);
     }
     else
@@ -37,27 +42,43 @@ void Billboard_Manager::Init()
 
 void Billboard_Manager::Final()
 {
-    for (auto* obj : m_ObjList) delete obj;
-    m_ObjList.clear();
+    for (auto* obj : m_ObjectPool) delete obj;
+    m_ObjectPool.clear();
 
     for (auto* effect : m_EffectPool) delete effect;
     m_EffectPool.clear();
 }
 
+void Billboard_Manager::Reset()
+{
+    // Return All Objects
+    for (auto* obj : m_ObjectPool)
+    {
+        if (obj->IsActive())
+        {
+            obj->Deactivate();
+        }
+    }
+
+    // Reset Effects
+    for (auto* effect : m_EffectPool)
+    {
+        if (effect->IsActive())
+        {
+            effect->Deactivate();
+        }
+    }
+
+    Debug::D_Out << "[Billboard] All Objects Reset to Pool." << std::endl;
+}
+
 void Billboard_Manager::Update(double dt)
 {
-    for (auto it = m_ObjList.begin(); it != m_ObjList.end(); )
+    for (auto* obj : m_ObjectPool)
     {
-        Billboard_Object* obj = *it;
-        obj->Update(dt);
-        if (!obj->IsActive())
+        if (obj->IsActive())
         {
-            delete obj;
-            it = m_ObjList.erase(it);
-        }
-        else
-        {
-            ++it;
+            obj->Update(dt);
         }
     }
 
@@ -72,7 +93,13 @@ void Billboard_Manager::Update(double dt)
 
 void Billboard_Manager::Draw()
 {
-    for (auto* obj : m_ObjList) obj->Draw();
+    for (auto* obj : m_ObjectPool)
+    {
+        if (obj->IsActive())
+        {
+            obj->Draw();
+        }
+    }
 
     for (auto* effect : m_EffectPool)
     {
@@ -86,41 +113,37 @@ void Billboard_Manager::Draw()
 void Billboard_Manager::Create(const XMFLOAT3& pos, Billboard_Type Type)
 {
     int texID = -1;
+    float scale = 1.0f;
 
     switch (Type)
     {
     case Billboard_Type::TARGET:
-    {
         texID = Texture_Manager::GetInstance()->GetID("Target");
-
-        if (texID == -1)
-        {
-            Debug::D_Out << "Texture Load Failed" << std::endl;
-            return;
-        }
-
-        Billboard_Target* New_T = new Billboard_Target(texID, pos, 1.0f, 1.0f);
-        New_T->Activate(pos);
-        m_ObjList.push_back(New_T);
+        scale = 1.0f;
         break;
-    }
 
     case Billboard_Type::OBJECT:
-    {
         texID = Texture_Manager::GetInstance()->GetID("Object");
-
-        if (texID == -1)
-        {
-            Debug::D_Out << "Texture Load Failed" << std::endl;
-            return;
-        }
-
-        Billboard_Object* New_O = new Billboard_Object(texID, pos, 5.0f, 5.0f);
-        New_O->Activate(pos);
-        m_ObjList.push_back(New_O);
+        scale = 5.0f;
         break;
     }
+
+    if (texID == -1) return;
+
+    for (auto* obj : m_ObjectPool)
+    {
+        if (!obj->IsActive())
+        {
+            // Found Inactive Object -> Reuse
+            obj->Reset_State(texID, pos, scale, scale);
+            obj->Activate(pos);
+
+            // Note : Need On Hit?
+            return;
+        }
     }
+
+    Debug::D_Out << "[Billboard] Object Pool Full!" << std::endl;
 }
 
 void Billboard_Manager::Create_Weapon(const DirectX::XMFLOAT3& pos, WeaponType wType, Billboard_Object** Box_Icon)
@@ -161,17 +184,27 @@ void Billboard_Manager::Create_Weapon(const DirectX::XMFLOAT3& pos, WeaponType w
     DirectX::XMFLOAT3 Spawn_Pos = pos;
     Spawn_Pos.y += 3.0f; // Over The Box
 
-    // Icon For Weapon Box
-    Billboard_Object* Weapon_Box = new Billboard_Object(Box_Tex_ID, Spawn_Pos, Scale, Scale);
-    Weapon_Box->Activate(Spawn_Pos);
-    Weapon_Box->SetLifeTime(15.0f);
-    m_ObjList.push_back(Weapon_Box);
-
-    // Send Billboard Pointer
-    if (Box_Icon)
+    // Object Pooling
+    for (auto* obj : m_ObjectPool)
     {
-        *Box_Icon = Weapon_Box;
+        // Find Inactive
+        if (!obj->IsActive())
+        {
+            // Reuse & Set Properties
+            obj->Reset_State(Box_Tex_ID, Spawn_Pos, Scale, Scale);
+            obj->SetLifeTime(Box_Icon_LifeTime);
+            obj->Activate(Spawn_Pos);
+
+            // Link Pointer
+            if (Box_Icon)
+            {
+                *Box_Icon = obj;
+            }
+            return;
+        }
     }
+
+    Debug::D_Out << "[Billboard] Weapon Box Pool Full!" << std::endl;
 }
 
 void Billboard_Manager::Create_Effect(const XMFLOAT3& pos, int patternID, float scale, Effect_Type Type)
@@ -199,7 +232,7 @@ void Billboard_Manager::Create_Effect(const XMFLOAT3& pos, int patternID, float 
 
 Billboard_Target* Billboard_Manager::Check_Collision(const AABB& box)
 {
-    for (auto* obj : m_ObjList)
+    for (auto* obj : m_ObjectPool)
     {
         if (!obj->IsActive())
         {

@@ -186,6 +186,16 @@ void Select_Game_Mode_Update(double elapsed_time)
         }
     }
 
+    if (KeyLogger_IsTrigger(KK_ESCAPE) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_B))
+    {
+        Audio_Manager::GetInstance()->Play_SFX("Buffer_Back");
+        Game_Manager::GetInstance()->Update_Main_Screen(Main_Screen::MENU_SELECT);
+
+        Set_Select_Menu_Buffer(SELECT_MODE_BUFFER::NONE);
+        Game_Manager::GetInstance()->Update_Game_Select_Screen(Game_Select_Screen::G_WAIT);
+        return;
+    }
+
     if (Click_Trigger)
     {
         if (Get_Select_Menu_Buffer() != SELECT_MODE_BUFFER::STORY_MODE &&

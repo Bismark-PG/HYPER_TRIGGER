@@ -22,6 +22,10 @@ using namespace DirectX;
 // ===== Root =====
 float g_Model_Root_Y = MODEL_ROOT_Y_DEFAULT;
 
+// ===== Eyes =====
+float g_L_Eye_X = 0.0f, g_L_Eye_Y = 0.0f;
+float g_R_Eye_X = 0.0f, g_R_Eye_Y = 0.0f;
+
 // ===== Clavicle =====
 float g_L_Clavicle_X = L_CLAV_X_DEF, g_L_Clavicle_Y = L_CLAV_Y_DEF, g_L_Clavicle_Z = L_CLAV_Z_DEF;
 float g_R_Clavicle_X = R_CLAV_X_DEF, g_R_Clavicle_Y = R_CLAV_Y_DEF, g_R_Clavicle_Z = R_CLAV_Z_DEF;
@@ -40,9 +44,11 @@ float g_R_Arm_Fore_X = 0.0f, g_R_Arm_Fore_Y = 0.0f, g_R_Arm_Fore_Z = R_ARM_FORE_
 // ===== Hand =====
 // Left Hand
 float g_L_Hand_X = HAND_DEF_X, g_L_Hand_Y = HAND_DEF_Y, g_L_Hand_Z = HAND_DEF_Z;
+float g_L_Finger[5][3][3] = { 0 };
 
 // Right Hand
 float g_R_Hand_X = HAND_DEF_X, g_R_Hand_Y = HAND_DEF_Y, g_R_Hand_Z = HAND_DEF_Z;
+float g_R_Finger[5][3][3] = { 0 };
 
 // ===== Legs =====
 // Left Leg
@@ -58,6 +64,9 @@ float g_R_Leg_Upper_X = 0.0f, g_R_Leg_Upper_Y = 0.0f, g_R_Leg_Upper_Z = LEG_UPPE
 float g_R_Leg_Lower_X = 0.0f, g_R_Leg_Lower_Y = 0.0f, g_R_Leg_Lower_Z = LEG_LOWER_Z_DEF; // 0
 float g_R_Foot_X = FOOT_X_DEF, g_R_Foot_Y = 0.0f, g_R_Foot_Z = FOOT_Z_DEF; // X 45, Z 0
 float g_R_Toe_X = FOOT_X_DEF, g_R_Toe_Y = 0.0f, g_R_Toe_Z = FOOT_Z_DEF;
+
+// Debug Bone Draw
+bool Is_Bone_AABB_Draw = true;;
 
 //3D’¸“_\‘¢‘Ì
 struct Vertex3D
@@ -77,6 +86,7 @@ static int g_TextureWhite = -1; // "TextSample" ID
 static void AddBoneData(Vertex3D& v, int boneIndex, float weight);
 static const aiNodeAnim* FindNodeAnim(const aiAnimation* anim, const std::string& name);
 static void ReadNodeHierarchy(MODEL* model, float animTime, const aiNode* node, const DirectX::XMMATRIX& parent);
+static bool Parse_Finger_Bone(const std::string& NodeName, bool isLeft, int& outFingerIdx, int& outJointIdx);
 
 MODEL* ModelLoad(const char* FileName, bool bBlender)
 {
@@ -541,7 +551,7 @@ void ModelDraw(MODEL* model, const DirectX::XMMATRIX& mtxWorld)
 
 void ModelDraw_Bone(MODEL* model, const DirectX::XMMATRIX& worldMtx)
 {
-	if (!model) return;
+	if (!model || !Is_Bone_AABB_Draw) return;
 
 	for (const auto& bone : model->BoneInfos)
 	{
@@ -693,6 +703,12 @@ static void ReadNodeHierarchy(
 		// -------------------------------------------------------------------------------------------------------------------
 		// [B]asic Types]
 		bool isHips = (name.find("Hips") != std::string::npos) || (name.find("Root") != std::string::npos);
+
+		// Eyes
+		bool isLEyes = (name.find("LeftEye") != std::string::npos);
+		bool isREyes = (name.find("RightEye") != std::string::npos);
+
+		// [Shoulder]
 		bool isClavicle = (name.find("Shoulder") != std::string::npos);
 
 		// [Sides]
@@ -750,8 +766,23 @@ static void ReadNodeHierarchy(
 		bool bInvX = false, bInvY = false, bInvZ = false;
 		bool applyFix = false;
 
+		// --- Eyes ---
+
+		if (isLEyes)
+		{
+			dbgX = g_L_Eye_X;
+			dbgY = g_L_Eye_Y;
+			applyFix = true;
+		}
+		else if (isREyes)
+		{
+			dbgX = g_R_Eye_X;
+			dbgY = g_R_Eye_Y;
+			applyFix = true;
+		}
+
 		// --- Clavicle ---
-		if (isLeft && isClavicle)
+		else if (isLeft && isClavicle)
 		{
 			dbgX = g_L_Clavicle_X; dbgY = g_L_Clavicle_Y; dbgZ = g_L_Clavicle_Z; applyFix = true;
 		}
@@ -783,6 +814,26 @@ static void ReadNodeHierarchy(
 		}
 
 		// --- HANDS & FINGERS ---
+		else if (isFinger)
+		{
+			int fIdx = -1;
+			int jIdx = -1;
+
+			if (Parse_Finger_Bone(name, true, fIdx, jIdx)) // Left Hand Finger
+			{
+				dbgX = g_L_Finger[fIdx][jIdx][0];
+				dbgY = g_L_Finger[fIdx][jIdx][1];
+				dbgZ = g_L_Finger[fIdx][jIdx][2];
+				applyFix = true;
+			}
+			else if (Parse_Finger_Bone(name, false, fIdx, jIdx)) // Right Hand Finger
+			{
+				dbgX = g_R_Finger[fIdx][jIdx][0];
+				dbgY = g_R_Finger[fIdx][jIdx][1];
+				dbgZ = g_R_Finger[fIdx][jIdx][2];
+				applyFix = true;
+			}
+		}
 		else if (isLeft && isHand)
 		{
 			dbgX = g_L_Hand_X; dbgY = g_L_Hand_Y; dbgZ = g_L_Hand_Z;
@@ -883,10 +934,37 @@ static void ReadNodeHierarchy(
 	}
 }
 
+static bool Parse_Finger_Bone(const std::string& NodeName, bool isLeft, int& outFingerIdx, int& outJointIdx)
+{
+	// 1. Check L R
+	std::string SidePrefix = isLeft ? "Left" : "Right";
+	if (NodeName.find(SidePrefix) == std::string::npos) return false;
+
+	// 2. Check Finger Name
+	if (NodeName.find("Thumb") != std::string::npos) outFingerIdx = 0;
+	else if (NodeName.find("Index") != std::string::npos) outFingerIdx = 1;
+	else if (NodeName.find("Middle") != std::string::npos) outFingerIdx = 2;
+	else if (NodeName.find("Ring") != std::string::npos) outFingerIdx = 3;
+	else if (NodeName.find("Pinky") != std::string::npos) outFingerIdx = 4;
+	else return false; // Not Finger
+
+	// 3. Check Finger Number (e.g: LeftHandIndex1)
+	if (NodeName.find("1") != std::string::npos) outJointIdx = 0;
+	else if (NodeName.find("2") != std::string::npos) outJointIdx = 1;
+	else if (NodeName.find("3") != std::string::npos) outJointIdx = 2;
+	else return false; // No Number Or Tip(4)
+
+	return true;
+}
+
 void Model_Node_Reset()
 {
 	// Root
 	g_Model_Root_Y = MODEL_ROOT_Y_DEFAULT;
+
+	// Eyes
+	g_L_Eye_X = 0.0f, g_L_Eye_Y = 0.0f;
+	g_R_Eye_X = 0.0f, g_R_Eye_Y = 0.0f;
 
 	// Clavicle
 	g_L_Clavicle_X = L_CLAV_X_DEF; g_L_Clavicle_Y = L_CLAV_Y_DEF; g_L_Clavicle_Z = L_CLAV_Z_DEF;
@@ -904,9 +982,11 @@ void Model_Node_Reset()
 
 	// Left Hand
 	g_L_Hand_X = HAND_DEF_X; g_L_Hand_Y = HAND_DEF_Y; g_L_Hand_Z = HAND_DEF_Z;
+	ZeroMemory(g_L_Finger, sizeof(g_L_Finger));
 
 	// Right Hand
 	g_R_Hand_X = HAND_DEF_X; g_R_Hand_Y = HAND_DEF_Y; g_R_Hand_Z = HAND_DEF_Z;
+	ZeroMemory(g_R_Finger, sizeof(g_R_Finger));
 
 	// Left Leg
 	g_L_Leg_Invert_X = false; g_L_Leg_Invert_Y = false; g_L_Leg_Invert_Z = false;

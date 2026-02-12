@@ -42,6 +42,8 @@ public:
 
     void Init();
     void Final();
+    void Reset();
+
     void Update(double dt);
     void Draw();
 
@@ -55,7 +57,8 @@ private:
     Billboard_Manager() = default;
     ~Billboard_Manager() = default;
 
-    std::vector<Billboard_Object*> m_ObjList;
+    static constexpr int MAX_OBJECT_POOL = 100;
+    std::vector<Billboard_Object*> m_ObjectPool;
 
     static constexpr int MAX_EFFECT_POOL = 200;
     std::vector<class Billboard_Effect*> m_EffectPool;

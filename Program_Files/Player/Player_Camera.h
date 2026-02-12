@@ -20,6 +20,7 @@ enum class Player_Sights
 void Player_Camera_Initialize();
 void Player_Camera_Finalize();
 
+void Player_Camera_Reset();
 void Player_Camera_Update(double elapsed_time);
 
 void Player_Camera_Set_Menu_Mode(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& target);
@@ -38,8 +39,6 @@ float Player_Camera_Get_Far_Z();
 
 Player_Sights Player_Camera_Get_Now_Sights();
 void Player_Camera_Set_Sights(Player_Sights sight);
-void Player_Camera_Update_Sights();
-void Player_Camera_Change_Sights();
 
 void Player_Camera_Set_Aiming_Mode(bool Is_Aiming);
 

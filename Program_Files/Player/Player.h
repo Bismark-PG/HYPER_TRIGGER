@@ -25,6 +25,7 @@ void Player_Model_Animation_Update(float Time);
 void Player_Draw();
 
 void Player_Reset();
+void Player_Set_Sprint_Toggle_Mode(bool isToggle);
 
 void Player_Set_POS(DirectX::XMFLOAT3& POS);
 const DirectX::XMFLOAT3& Player_Get_POS();
@@ -39,7 +40,6 @@ int Player_Get_MaxHP();
 
 bool Player_Is_Aiming_Now();
 
-// Level UP Logic For Prototype
 void Player_LevelUp();
 float Player_Get_Damage_Coefficient();
 

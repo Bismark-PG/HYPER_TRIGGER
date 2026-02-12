@@ -27,7 +27,7 @@ public:
     bool Fire(const DirectX::XMFLOAT3& visualPos, const DirectX::XMFLOAT3& logicalPos, const DirectX::XMFLOAT3& dir, int damage);
     void Reload();
     
-    bool AddWeapon(WeaponType type);
+    bool AddWeapon(WeaponType type, bool Sound = true);
 
 	// Get Current Weapon Info
     bool HasWeapon() const;

@@ -18,6 +18,8 @@
 #include "Mash_Field.h"
 using namespace DirectX;
 
+XMFLOAT3 Get_Icon_POS(XMFLOAT3 POS, float Y, float Offset);
+
 void Resource_Manager::Init()
 {
     Clear();
@@ -50,6 +52,7 @@ void Resource_Manager::Update(double elapsed_time)
     XMVECTOR vPlayerPos = XMLoadFloat3(&pPos);
 
     float Hover_Height = 0.5f;
+    float Billboard_Offset = 3.0f;
 
     for (auto& item : m_Items)
     {
@@ -87,20 +90,25 @@ void Resource_Manager::Update(double elapsed_time)
             {
                 item.Position.y = Target_Y;
             }
+
+            if (item.Drop_Box_Icon_Link && item.Drop_Box_Icon_Link->IsActive())
+            {
+                // Get Offset
+                XMFLOAT3 Icon_Pos = Get_Icon_POS(item.Position, Ground_Y, Billboard_Offset);
+                item.Drop_Box_Icon_Link->Activate(Icon_Pos);
+            }
         }
-        // If Over The Ground, Get Hovering
-        else
+        else if (item.Drop_Box_Icon_Link && item.Drop_Box_Icon_Link->IsActive())
         {
-            // Hovering
-            float bobbing = sinf(static_cast<float>(GetTickCount64()) * 0.005f) * 0.1f;
-            item.Position.y = Target_Y + bobbing;
+            // Get Offset
+            XMFLOAT3 Icon_Pos = Get_Icon_POS(item.Position, Ground_Y, Billboard_Offset);
+            item.Drop_Box_Icon_Link->Activate(Icon_Pos);
         }
 
         if (item.Type == Resource_Type::WEAPON_BOX)
         {
             continue;
         }
-
         // Make Resources With Random Range
         if (rand() % 10 < 3)
         {
@@ -251,10 +259,10 @@ ResourceItem* Resource_Manager::Get_Nearest_Weapon_In_View(const DirectX::XMFLOA
 {
     ResourceItem* Is_Weapon_Box = nullptr;
     float Max_Dot = -1.0f;
+    float Range_Sqrt = range * range; // Sprt For Optimization
 
     XMVECTOR Eye_Pos = XMLoadFloat3(&pos);
     XMVECTOR Look_Dir = XMLoadFloat3(&dir);
-    float Range_Sqrt = range * range; // Sprt For Optimization
 
     for (auto& item : m_Items)
     {
@@ -292,19 +300,33 @@ ResourceItem* Resource_Manager::Get_Nearest_Weapon_In_View(const DirectX::XMFLOA
             Target_Pos = Item_Pos;
         }
 
-        // Vector For Eye To Icon(Box)
-        XMVECTOR To_Target = Target_Pos - Eye_Pos;
-        To_Target = XMVector3Normalize(To_Target);
+        // Delete Y Axis, Just Get X, Z
+        XMVECTOR Flat_Eye = XMVectorSetY(Eye_Pos, 0.0f);
+        XMVECTOR Flat_Target = XMVectorSetY(Target_Pos, 0.0f);
+        XMVECTOR Flat_Look = XMVectorSetY(Look_Dir, 0.0f);
 
-        // Get Dot Product
-        float Dot = XMVectorGetX(XMVector3Dot(Look_Dir, To_Target));
+        // [Safety Code]
+        // If Vector Don`t Have X,Z Axis, Pass This Time
+        if (XMVectorGetX(XMVector3LengthSq(Flat_Look)) <= 0.0001f)
+        {
+            continue;
+        }
+
+        // Normalize Eye Vector
+        XMVECTOR To_Target_XZ = Flat_Target - Flat_Eye;
+        To_Target_XZ = XMVector3Normalize(To_Target_XZ);
+
+        XMVECTOR Look_Dir_XZ = XMVector3Normalize(Flat_Look);
+
+        // Get Dot Product (XZ Plane Only)
+        float Dot = XMVectorGetX(XMVector3Dot(Look_Dir_XZ, To_Target_XZ));
 
         // ---------------------------------------------------------
         // Judgement
         // Almost Front = 0.9f (Around Degree 25)
         // Maybe Front = 0.85f (Around Degree 30)
         // ---------------------------------------------------------
-        if (Dot > 0.85f)
+        if (Dot > 0.9f) // Do Not Get Y Axis, So This Code Will Be Judge Just Width
         {
             // If So Many Box, Get Front Box
             if (Dot > Max_Dot)
@@ -368,4 +390,19 @@ void Resource_Manager::Add_Exp_Bonus(float ratio)
     m_Exp_Bonus_Ratio += ratio;
 
     Debug::D_Out << "[Resource] EXP Bonus Added! Current Bonus: " << m_Exp_Bonus_Ratio * 100.0f << "%" << std::endl;
+}
+
+XMFLOAT3 Get_Icon_POS(XMFLOAT3 POS, float Y, float Offset)
+{
+    XMFLOAT3 Icon_Pos = POS;
+    Icon_Pos.y += Offset;
+
+    float Min_Icon_Y = Y + Offset;
+
+    if (Icon_Pos.y < Min_Icon_Y)
+    {
+        Icon_Pos.y = Min_Icon_Y;
+    }
+
+    return Icon_Pos;
 }

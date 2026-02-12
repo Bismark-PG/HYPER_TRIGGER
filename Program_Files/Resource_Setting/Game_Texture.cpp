@@ -115,6 +115,9 @@ void Game_Texture_Load()
     
     Texture_M->Load("Reload", L"Resource/Texture/UI/UI_Reload.png");
 
+    Texture_M->Load("Pick_UP_Keyboard", L"Resource/Texture/UI/UI_Pick_UP_K.png");
+    Texture_M->Load("Pick_UP_Controller", L"Resource/Texture/UI/UI_Pick_UP_C.png");
+
     //---------------------UI : Main Menu Texture---------------------//
     Texture_M->Load("Start", L"Resource/Texture/UI/Menu_Start.png");
     Texture_M->Load("Settings", L"Resource/Texture/UI/Menu_Settings.png");

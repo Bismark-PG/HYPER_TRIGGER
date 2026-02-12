@@ -27,6 +27,7 @@ static bool Is_Controller_Output;
 static bool Is_Key_INPUT;
 
 static XMFLOAT2 LeftStick{};
+static XMFLOAT2 RightStick{};
 static BYTE LeftTrigger = 0;
 static BYTE RightTrigger = 0;
 
@@ -137,9 +138,18 @@ void KeyLogger_Update()
 	TriggerButtons = (prev ^ curr) & curr;
 	ReleaseButtons = (prev ^ curr) & prev;
 
+	// Left Stick
 	LeftStick.x = Curr_XS.Gamepad.sThumbLX;
 	LeftStick.y = Curr_XS.Gamepad.sThumbLY;
+
+	// Right Stick
+	RightStick.x = Curr_XS.Gamepad.sThumbRX;
+	RightStick.y = Curr_XS.Gamepad.sThumbRY;
+	
+	// Left Trigger
 	LeftTrigger = Curr_XS.Gamepad.bLeftTrigger;
+	
+	// Right Trigger
 	RightTrigger = Curr_XS.Gamepad.bRightTrigger;
 
 	// Get Now Mouse State
@@ -288,6 +298,11 @@ bool XKeyLogger_IsPadReleased(WORD button)
 XMFLOAT2 XKeyLogger_GetLeftStick()
 {
 	return LeftStick;
+}
+
+XMFLOAT2 XKeyLogger_GetRightStick()
+{
+	return RightStick;
 }
 
 BYTE XKeyLogger_GetLeftTrigger()

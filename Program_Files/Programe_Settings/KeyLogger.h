@@ -49,6 +49,7 @@ bool XKeyLogger_IsPadTrigger(WORD button);
 bool XKeyLogger_IsPadReleased(WORD button);
 
 DirectX::XMFLOAT2 XKeyLogger_GetLeftStick();
+DirectX::XMFLOAT2 XKeyLogger_GetRightStick();
 BYTE XKeyLogger_GetLeftTrigger();
 BYTE XKeyLogger_GetRightTrigger();
 

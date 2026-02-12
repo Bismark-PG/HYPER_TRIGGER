@@ -73,7 +73,7 @@ static const WeaponSpec SPEC_MACHINEGUN =
 static const WeaponSpec SPEC_GRENADE =
 {
     WeaponType::GRENADE, BulletType::GRENADE, 1.0f, false, 50,
-    1, 6, 0.0f,
+    1, 6, 0.5f,
     "Synth_2"
 };
 

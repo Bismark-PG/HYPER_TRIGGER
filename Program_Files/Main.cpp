@@ -181,8 +181,9 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 					ImGui::Begin("Debug Menu");
 
 					ImGui::Text("FPS: %.1f", FPS);
-
-					// [Player Control]
+					// ==========================================
+					//			   [Player Control]
+					// ==========================================
 					if (ImGui::CollapsingHeader("Player Control", ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						// 1. Position Control
@@ -222,8 +223,31 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 						ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "Current: %s",
 							(sightMode == 0 ? "Left" : (sightMode == 1 ? "Middle" : "Right")));
 					}
+					// ==========================================
+					//		    [Debug Render Settings]
+					// ==========================================
+					if (ImGui::CollapsingHeader("Debug Render Settings", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						bool Is_Debug_Draw = Debug_Draw_Get_State();
 
-					// [Debug Camera Info]
+						if (ImGui::Checkbox("Show Collision Boxes", &Is_Debug_Draw))
+						{
+							Debug_Draw_Get_State(Is_Debug_Draw);
+						}
+
+						ImGui::SameLine();
+						ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "[Hitbox Visible]");
+
+						if (ImGui::Checkbox("Show Bone Nodes", &Is_Bone_AABB_Draw))
+						{ 
+							// Will Be Check In Model Bone Draw 
+						}
+						ImGui::SameLine();
+						ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "[Bone Visible]");
+					}
+					// ==========================================
+					//			  [Debug Camera Info]
+					// ==========================================
 					if (ImGui::CollapsingHeader("Debug Camera Info", ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						// (1) Debug Camera Position
@@ -278,12 +302,27 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 							ImGui::TreePop();
 						}
 					}
-
-					// [Player Animation]
+					// ==========================================
+					//			  [Player Animation]
+					// ==========================================
 					if (ImGui::CollapsingHeader("- Root Position Fix -", ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Root Adjust");
 						ImGui::DragFloat("Root Y Offset##Root", &g_Model_Root_Y, 0.1f, -200.0f, 200.0f);
+					}
+
+
+					// ===== Eyes =====
+					if (ImGui::CollapsingHeader("- Eyes -", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::Text("Left Eye");
+						ImGui::SliderFloat("L Eye X (Pitch)", &g_L_Eye_X, -45.0f, 45.0f);
+						ImGui::SliderFloat("L Eye Y (Yaw)", &g_L_Eye_Y, -45.0f, 45.0f);
+
+						ImGui::Text("Right Eye");
+						ImGui::SliderFloat("R Eye X (Pitch)", &g_R_Eye_X, -45.0f, 45.0f);
+						ImGui::SliderFloat("R Eye Y (Yaw)", &g_R_Eye_Y, -45.0f, 45.0f);
+						ImGui::Separator();
 					}
 
 					// ===== Left Arm =====
@@ -352,6 +391,73 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 						ImGui::DragFloat("R-Hand X##HandR", &g_R_Hand_X, 1.0f, -360.0f, 360.0f);
 						ImGui::DragFloat("R-Hand Y##HandR", &g_R_Hand_Y, 1.0f, -360.0f, 360.0f);
 						ImGui::DragFloat("R-Hand Z##HandR", &g_R_Hand_Z, 1.0f, -360.0f, 360.0f);
+					}
+
+					// ===== Fingers Control =====
+					if (ImGui::CollapsingHeader("- Hands (Fingers) -", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						const char* FingerNames[] = { "Thumb", "Index", "Middle", "Ring", "Pinky" };
+
+						// --- Left Hand Fingers ---
+						if (ImGui::TreeNode("Left Hand Fingers"))
+						{
+							for (int f = 0; f < 5; ++f) // 5 Fingers
+							{
+								if (ImGui::TreeNode(FingerNames[f]))
+								{
+									for (int j = 0; j < 3; ++j) // 3 Joints
+									{
+										// Label: Joint 1, Joint 2, Joint 3
+										std::string label = "Joint " + std::to_string(j + 1);
+										ImGui::Text("%s", label.c_str());
+
+										// Use PushID For ID Crash
+										ImGui::PushID(f * 10 + j);
+
+										ImGui::PushItemWidth(60);
+										ImGui::DragFloat("X", &g_L_Finger[f][j][0], 1.0f, -90.0f, 90.0f); ImGui::SameLine();
+										ImGui::DragFloat("Y", &g_L_Finger[f][j][1], 1.0f, -90.0f, 90.0f); ImGui::SameLine();
+										ImGui::DragFloat("Z", &g_L_Finger[f][j][2], 1.0f, -90.0f, 90.0f);
+										ImGui::PopItemWidth();
+
+										ImGui::PopID(); // ID Pop
+									}
+									ImGui::TreePop();
+								}
+							}
+							ImGui::TreePop();
+						}
+
+						ImGui::Separator();
+
+						// --- Right Hand Fingers ---
+						if (ImGui::TreeNode("Right Hand Fingers"))
+						{
+							for (int f = 0; f < 5; ++f)
+							{
+								if (ImGui::TreeNode(FingerNames[f]))
+								{
+									for (int j = 0; j < 3; ++j)
+									{
+										std::string label = "Joint " + std::to_string(j + 1);
+										ImGui::Text("%s", label.c_str());
+
+										// Right Fingers Use PushID Start 100 For Defense Crash Left Fingers 
+										ImGui::PushID(100 + f * 10 + j);
+
+										ImGui::PushItemWidth(60);
+										ImGui::DragFloat("X", &g_R_Finger[f][j][0], 1.0f, -90.0f, 90.0f); ImGui::SameLine();
+										ImGui::DragFloat("Y", &g_R_Finger[f][j][1], 1.0f, -90.0f, 90.0f); ImGui::SameLine();
+										ImGui::DragFloat("Z", &g_R_Finger[f][j][2], 1.0f, -90.0f, 90.0f);
+										ImGui::PopItemWidth();
+
+										ImGui::PopID();
+									}
+									ImGui::TreePop();
+								}
+							}
+							ImGui::TreePop();
+						}
 					}
 
 					// ===== Left Leg =====

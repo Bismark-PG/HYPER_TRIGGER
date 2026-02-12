@@ -18,6 +18,8 @@
 #include <vector>
 #include <cmath>
 #include <debug_ostream.h>
+#include "Player_Camera.h"
+#include "KeyLogger.h"
 using namespace PALETTE;
 
 // --- Texture ID ---
@@ -27,7 +29,7 @@ static int UI_HP_Bar = -1, UI_HP_Fill = -1, UI_EXP_Bar = -1, UI_EXP_Fill = -1;
 // Weapon
 static int UI_Weapon_BG = -1, UI_Current_Weapon = -1, UI_Next_Weapon_1 = -1, UI_Next_Weapon_2 = -1;
 static int UI_Ammo_BG = -1, UI_Icon_HG = -1, UI_Icon_AR = -1, UI_Icon_MG = -1, UI_Icon_G = -1;
-static int UI_Reload = -1;
+static int UI_Reload = -1, UI_Prompt = -1;
 
 // Numbers
 static int UI_Num[10] = { -1 }, UI_Num_Slash = -1;
@@ -55,8 +57,7 @@ static float Current_HP_Ratio = 1.0f, Current_EXP_Ratio = 0.0f;
 // Reload UI Parameter
 static float Reload_Rotation = 0.0f;
 static float UI_Reload_Timer = 0.0f;
-constexpr float Reload_Speed_Min = DirectX::XM_2PI; // Min Speed : 1 Lap For 1 Sec
-constexpr float Reload_Speed_Max = DirectX::XM_2PI * 10.0f; // Max Speed : 10 Lap For 1 Sec
+constexpr float Reload_Base_Speed = DirectX::XM_2PI * 4.0f;
 
 // Ammo
 static const std::deque<WeaponState>* P_Inventory = nullptr;
@@ -64,6 +65,9 @@ static float Ammo_Box_X, Ammo_Box_Y, Ammo_Box_W, Ammo_Box_H;
 static float Cur_Weapon_X, Cur_Weapon_Y, Cur_Weapon_Size;
 static float Next_Weapon_1_X, Next_Weapon_1_Y, Next_Weapon_Size, Next_Weapon_Offset;
 static float Next_Weapon_2_X, Next_Weapon_2_Y;
+
+// Weapon Pick UP
+static float Pick_X, Pick_Y, Pick_W, Pick_H;
 
 // Damaged
 static float Damage_Effect_Timer = 0.0f;
@@ -73,6 +77,8 @@ constexpr float Max_Damage_Alpha = 0.1f;
 
 void Draw_Number_String(const std::string& str, float startX, float startY, float width, float height);
 static int Get_Weapon_Icon_ID(WeaponType type);
+void Get_Prompt_Tex_UI();
+bool Get_Ready_Prompt_UI();
 
 void Game_UI_Initialize()
 {
@@ -138,15 +144,20 @@ void Game_UI_Initialize()
     Next_Weapon_2_X = Ammo_Box_X + (Next_Weapon_Offset * 1.5f) + (Next_Weapon_Size * 0.5f);;
     Next_Weapon_2_Y = Next_Weapon_1_Y;
 
-    // 8. Damaged Overlay
+    // 8. Weapon Pick Up Prompt
+    Pick_W = Screen_W * 0.3f, Pick_H = Screen_H * 0.1f;
+    Pick_X = (Screen_W * 0.5f) - (Pick_W * 0.5f);
+    Pick_Y = (Screen_H * 0.85f) - (Pick_H * 0.5f);
+
+    // 9. Damaged Overlay
     Is_Damage_Effect_On = false;
     Damage_Effect_Timer = 0.0f;
     Damage_Alpha = 0.0f;
 
-    // 9. Clear Inventory Pointer
+    // 10. Clear Inventory Pointer
     P_Inventory = nullptr;
 
-    // 10. Reload UI Parameter
+    // 11. Reload UI Parameter
     UI_Reload_Timer = 0.0f;
     Reload_Rotation = 0.0f;
 }
@@ -158,6 +169,8 @@ void Game_UI_Finalize()
 void Game_UI_Update(double elapsed_time)
 {
     float dt = static_cast<float>(elapsed_time);
+
+    Get_Prompt_Tex_UI();
 
     // HP Ratio Calculation
     int curHP = Player_Get_HP();
@@ -212,14 +225,26 @@ void Game_UI_Update(double elapsed_time)
     bool Reloading = Weapon_System::GetInstance().Is_Reloading();
     bool Switching = Weapon_System::GetInstance().Is_Switching();
 
-    // Reload And Switching Logic Update
     if (Reloading || Switching)
     {
-        float Ratio = Weapon_System::GetInstance().Get_Reload_State();
+        float Ratio = 0.0f;
 
-        float EaseRatio = Ratio * Ratio * Ratio;
+        if (Reloading)
+        {
+            // 0.0(Start) ~ 1.0(End)
+            Ratio = Weapon_System::GetInstance().Get_Reload_State();
+        }
+        else
+        {
+            // 0.0(Start) ~ 1.0(End)
+            Ratio = Weapon_System::GetInstance().Get_Switching_State();
+        }
 
-        float CurrentSpeed = Reload_Speed_Min + (Reload_Speed_Max - Reload_Speed_Min) * EaseRatio;
+        // Safety Clamp
+        if (Ratio > 1.0f) Ratio = 1.0f;
+
+        // Formula : (Max Speed * Ratio) * dt
+        float CurrentSpeed = Reload_Base_Speed * Ratio;
 
         Reload_Rotation -= CurrentSpeed * dt;
     }
@@ -349,11 +374,23 @@ void Game_UI_Draw()
     // -----------------------------------------------------------
     // 4. Reload
     // -----------------------------------------------------------
-    if (Weapon_System::GetInstance().Is_Reloading() || Weapon_System::GetInstance().Is_Switching())
-    {
-        Sprite_Draw(UI_Reload, Aim_X, Aim_Y, Aim_Size, Aim_Size, Reload_Rotation);
-    }
+    bool isReloading = Weapon_System::GetInstance().Is_Reloading();
+    bool isSwitching = Weapon_System::GetInstance().Is_Switching();
 
+    if (isReloading || isSwitching)
+    {
+        bool IsGrenade = false;
+        if (Weapon_System::GetInstance().HasWeapon())
+        {
+            if (Weapon_System::GetInstance().GetCurrentWeapon().Spec.Type == WeaponType::GRENADE)
+                IsGrenade = true;
+        }
+
+        if (!IsGrenade || isSwitching)
+        {
+            Sprite_Draw(UI_Reload, Aim_X, Aim_Y, Aim_Size, Aim_Size, Reload_Rotation);
+        }
+    }
     // -----------------------------------------------------------
     // 5. Aim
     // -----------------------------------------------------------
@@ -367,7 +404,15 @@ void Game_UI_Draw()
     }
 
     // -----------------------------------------------------------
-    // 6. Damager Overlay
+    // 6. Weapon Pick Up Prompt
+    // -----------------------------------------------------------
+    if (UI_Prompt != -1 && Get_Ready_Prompt_UI())
+    {
+        Sprite_Draw(UI_Prompt, Pick_X, Pick_Y, Pick_W, Pick_H);
+    }
+
+    // -----------------------------------------------------------
+    // 7. Damager Overlay
     // -----------------------------------------------------------
     if (Is_Damage_Effect_On && Damage_Alpha > 0.0f)
     {
@@ -473,4 +518,27 @@ static int Get_Weapon_Icon_ID(WeaponType type)
         return UI_Icon_G;
     }
     return -1;
+}
+
+void Get_Prompt_Tex_UI()
+{
+    if (XKeyLogger_IsControllerInput())
+    {
+        UI_Prompt = Texture_Manager::GetInstance()->GetID("Pick_UP_Controller");
+    }
+    else
+    {
+        UI_Prompt = Texture_Manager::GetInstance()->GetID("Pick_UP_Keyboard");
+    }
+}
+
+bool Get_Ready_Prompt_UI()
+{
+    DirectX::XMFLOAT3 Eye = Player_Camera_Get_Current_POS();
+    DirectX::XMFLOAT3 Dir = Player_Camera_Get_Front();
+
+    ResourceItem* Item = Resource_Manager::GetInstance().Get_Nearest_Weapon_In_View(Eye, Dir, 5.0f);
+
+    if (Item != nullptr) return true;
+    else return false;
 }

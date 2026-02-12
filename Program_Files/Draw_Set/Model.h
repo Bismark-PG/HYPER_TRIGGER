@@ -57,6 +57,12 @@ constexpr float FOOT_Z_DEF = 0.0f;
 extern float g_Model_Root_Y;
 
 // -----------------//
+//       Eyes       //
+// -----------------//
+extern float g_L_Eye_X, g_L_Eye_Y;
+extern float g_R_Eye_X, g_R_Eye_Y;
+
+// -----------------//
 //     Clavicle     //
 // -----------------//
 extern float g_L_Clavicle_X, g_L_Clavicle_Y, g_L_Clavicle_Z;
@@ -80,9 +86,11 @@ extern float g_R_Arm_Fore_X, g_R_Arm_Fore_Y, g_R_Arm_Fore_Z;
 // -----------------//
 // Left Hand
 extern float g_L_Hand_X, g_L_Hand_Y, g_L_Hand_Z;
+extern float g_L_Finger[5][3][3];
 
 // Right Hand
 extern float g_R_Hand_X, g_R_Hand_Y, g_R_Hand_Z;
+extern float g_R_Finger[5][3][3];
 
 // -----------------//
 //       Legs       //
@@ -105,6 +113,7 @@ extern float g_R_Toe_X, g_R_Toe_Y, g_R_Toe_Z;
 //  Animation Constants //
 // ---------------------//
 constexpr int MAX_BONES = 100;
+extern bool Is_Bone_AABB_Draw;
 
 struct BoneInfo
 {

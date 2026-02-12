@@ -9,6 +9,7 @@
 #include "Texture_Manager.h"
 #include "Cube.h"
 
+bool Is_Debug_Box_Draw = true;
 using namespace DirectX;
 
 static ID3D11RasterizerState* Wire_Frame_State = nullptr;
@@ -34,28 +35,30 @@ void Debug_Collision_Finalize()
 
 void Debug_Collision_Draw(const AABB& Collision, const DirectX::XMFLOAT4& color)
 {
-	ID3D11DeviceContext* context = Direct3D_GetContext();
-	if (!context || !Wire_Frame_State) return;
+	if (!Debug_Draw_Get_State())	return;
+
+	ID3D11DeviceContext* Context = Direct3D_GetContext();
+	if (!Context || !Wire_Frame_State)	 return;
 
 	// Set AABB Scale 
-	XMVECTOR vMin = XMLoadFloat3(&Collision.Min);
-	XMVECTOR vMax = XMLoadFloat3(&Collision.Max);
-	XMVECTOR vSize = vMax - vMin;
+	XMVECTOR Vec_Min = XMLoadFloat3(&Collision.Min);
+	XMVECTOR Vec_Max = XMLoadFloat3(&Collision.Max);
+	XMVECTOR Vec_Size = Vec_Max - Vec_Min;
 
 	// Get Middle Of AABB
-	XMVECTOR vCenter = (vMin + vMax) * 0.5f;
+	XMVECTOR vCenter = (Vec_Min + Vec_Max) * 0.5f;
 
 	// Scaling Cude Scale
-	XMMATRIX mtxScale = XMMatrixScalingFromVector(vSize);
+	XMMATRIX mtxScale = XMMatrixScalingFromVector(Vec_Size);
 	XMMATRIX mtxTrans = XMMatrixTranslationFromVector(vCenter);
 	XMMATRIX world = mtxScale * mtxTrans;
 
 	// Save Rasterizer State
 	ID3D11RasterizerState* oldState = nullptr;
-	context->RSGetState(&oldState);
+	Context->RSGetState(&oldState);
 
 	// Change Rasterizer To Wire Frame
-	context->RSSetState(Wire_Frame_State);
+	Context->RSSetState(Wire_Frame_State);
 
 	// Set Shader Color
 	Shader_Manager::GetInstance()->SetDiffuseColor(color);
@@ -71,6 +74,16 @@ void Debug_Collision_Draw(const AABB& Collision, const DirectX::XMFLOAT4& color)
 	Debug_Cube_Draw(world);
 
 	// Rollback Rasterizer State
-	context->RSSetState(oldState);
+	Context->RSSetState(oldState);
 	SAFE_RELEASE(oldState);
+}
+
+bool Debug_Draw_Get_State()
+{
+	return Is_Debug_Box_Draw;
+}
+
+void Debug_Draw_Get_State(bool State)
+{
+	Is_Debug_Box_Draw = State;
 }

@@ -99,10 +99,14 @@ void Controller_Set_Update()
 			Audio_Manager::GetInstance()->Play_SFX("Buffer_Denied");
 		}
 
-		if ((int)(SystemTimer_GetTime() - Pressed_Time) % 2 == 0)
+		if (static_cast<int>(SystemTimer_GetTime() - Pressed_Time) % 2 == 0)
+		{
 			Is_Pressed = false;
-		else if ((int)(SystemTimer_GetTime() - Pressed_Time) % 2 == 1)
+		}
+		else if (static_cast<int>(SystemTimer_GetTime() - Pressed_Time) % 2 == 1)
+		{
 			Is_Pressed = true;
+		}
 		break;
 
 	case CONTROLLER_STATE::OUTPUT:
@@ -113,10 +117,14 @@ void Controller_Set_Update()
 			Audio_Manager::GetInstance()->Play_SFX("Buffer_Denied");
 		}
 
-		if ((int)(SystemTimer_GetTime() - Pressed_Time) % 2 == 0)
+		if (static_cast<int>(SystemTimer_GetTime() - Pressed_Time) % 2 == 0)
+		{
 			Is_Pressed = false;
-		else if ((int)(SystemTimer_GetTime() - Pressed_Time) % 2 == 1)
+		}
+		else if (static_cast<int>(SystemTimer_GetTime() - Pressed_Time) % 2 == 1)
+		{
 			Is_Pressed = true;
+		}
 		break;
 	}
 }
@@ -133,9 +141,13 @@ void Controller_Set_Draw()
 		Sprite_Draw(UI_Controller_Input, Alert_X, Alert_y, Alert_Width, Alert_Height, 0.f);
 
 		if(Is_Pressed)
+		{
 			Sprite_Draw(UI_Controller_Button_Up, Button_X, Button_y, Button_Size, Button_Size, 0.f);
+		}
 		else
+		{
 			Sprite_Draw(UI_Controller_Button_Down, Button_X, Button_y, Button_Size, Button_Size, 0.f);
+		}
 		break;
 
 	case CONTROLLER_STATE::OUTPUT:
@@ -143,9 +155,13 @@ void Controller_Set_Draw()
 		Sprite_Draw(UI_Controller_Output, Alert_X, Alert_y, Alert_Width, Alert_Height, 0.f);
 
 		if (Is_Pressed)
+		{
 			Sprite_Draw(UI_Controller_Enter_Up, Button_X, Button_y, Button_Size, Button_Size, 0.f);
+		}
 		else
+		{
 			Sprite_Draw(UI_Controller_Enter_Down, Button_X, Button_y, Button_Size, Button_Size, 0.f);
+		}
 		break;
 	}
 }

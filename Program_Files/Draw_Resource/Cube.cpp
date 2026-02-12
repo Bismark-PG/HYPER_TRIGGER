@@ -219,18 +219,20 @@ AABB Get_Cube_AABB(DirectX::XMFLOAT3& POS)
 	};
 }
 
-// Note
-// ワールド座標変換行列の作成
-// XMMATRIX mtxWorld = XMMatrixIdentity(); //単位行列の作成
-// XMMATRIX mtxWorld = XMMatrixTranslation(-4.5f, 0.5f, 4.5f); // 単位行列
+/*
+>> Note : XMMatrix Guide, Pyramid
 
-// XMMATRIX mtxWorld = XMMatrixRotationX(XMConvertToRadians(45.0f)); // 回転 X
-// XMMATRIX mtxWorld = XMMatrixRotationY(XMConvertToRadians(45.0f)); // 回転 Y
-// XMMATRIX mtxWorld = XMMatrixRotationZ(XMConvertToRadians(45.0f)); // 回転 Z
+ワールド座標変換行列の作成
+XMMATRIX mtxWorld = XMMatrixIdentity(); //単位行列の作成
+XMMATRIX mtxWorld = XMMatrixTranslation(-4.5f, 0.5f, 4.5f); // 単位行列
 
-// XMMATRIX mtxWorld = XMMatrixScaling(1.0f, 3.0f, 1.0f); // Sacleing (X, Y, Z)
+XMMATRIX mtxWorld = XMMatrixRotationX(XMConvertToRadians(45.0f)); // 回転 X
+XMMATRIX mtxWorld = XMMatrixRotationY(XMConvertToRadians(45.0f)); // 回転 Y
+XMMATRIX mtxWorld = XMMatrixRotationZ(XMConvertToRadians(45.0f)); // 回転 Z
 
-/*float x = 0.5;
+XMMATRIX mtxWorld = XMMatrixScaling(1.0f, 3.0f, 1.0f); // Sacleing (X, Y, Z)
+
+float x = 0.5;
 for (float i = 10.0f; i > 0; i -= 1.0f)
 {
 	XMMATRIX mtxOffsec = XMMatrixTranslation(0, x, 0);
@@ -239,11 +241,39 @@ for (float i = 10.0f; i > 0; i -= 1.0f)
 
 	XMMATRIX mtxWorld = mtxOffsec * mtxScale * mtxRotateY;
 
-	// 頂点シェーダーに座標変換行列を設定
+	 頂点シェーダーに座標変換行列を設定
 	Shader_3D_SetWorldMatrix(mtxWorld);
 
-	// ポリゴン描画命令発行
+	 ポリゴン描画命令発行
 	g_pContext->Draw(NUM_VERTEX, 0);
 
 	x += 1.0f;
-}*/
+}
+
+>> Pyramid <<
+int d = 1, i = 5;
+for (int j = 0; j < 2; j++)
+{
+	for (int k = 0; k < 2; k++)
+	{
+		XMMATRIX mtxOffsec = XMMatrixTranslation(-2.5f + i * j, 0.0f, 2.5f - i * k);
+		
+		for (int y = 0; y < 5 * d; y++)
+		{
+			for (int z = 0; z < 5 * d - y; z++)
+			{
+				for (int x = 0; x < 5 * d - y; x++)
+				{
+					XMMATRIX mtxTrans = XMMatrixTranslation(-2.0f * d + x + 0.5f * y, 0.5f + y, -2.0f * d + z + 0.5f * y);
+					XMMATRIX mtxRotateY = XMMatrixRotationY(XMConvertToRadians(g_Angle));
+					XMMATRIX mtxScale = XMMatrixScaling(1.0f, g_Scale, 1.0f);
+					
+					XMMATRIX mtxWorld = mtxTrans * mtxRotateY * mtxOffsec * mtxScale;
+					
+					Cube_Draw(mtxWorld);
+				}
+			}
+		}
+	}
+}
+*/

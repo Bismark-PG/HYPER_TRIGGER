@@ -27,8 +27,18 @@ void Billboard_Object::Deactivate()
     m_IsActive = false;
 }
 
+void Billboard_Object::Reset_State(int texID, const DirectX::XMFLOAT3& pos, float scaleX, float scaleY)
+{
+    m_TexID = texID;
+    m_Position = pos;
+    m_ScaleX = scaleX;
+    m_ScaleY = scaleY;
+}
+
 void Billboard_Object::Update(double dt)
 {
+    if (!m_IsActive) return;
+
     if (m_LifeTime > 0.0f)
     {
         m_LifeTime -= static_cast<float>(dt);

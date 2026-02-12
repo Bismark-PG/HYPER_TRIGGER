@@ -22,6 +22,7 @@ public:
     virtual void Deactivate();
     bool IsActive() const { return m_IsActive; }
     void SetLifeTime(float time) { m_LifeTime = time; }
+    void Reset_State(int texID, const DirectX::XMFLOAT3& pos, float scaleX, float scaleY);
 
     // --- Main Logic ---
     virtual void Update(double dt);

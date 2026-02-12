@@ -24,8 +24,12 @@
 #include "BGM_Mixer.h"
 #include "Audio_Manager.h"
 #include "Billboard_Manager.h"
+#include "Setting.h"
 using namespace DirectX;
 using namespace PALETTE;
+
+#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
+#define XINPUT_GAMEPAD_TRIGGER_THRESHOLD    30
 
 // Player Physics Constants
 constexpr float PLAYER_SCALE = 0.01f;
@@ -82,7 +86,8 @@ static XMVECTOR Player_Update_AABB_System(XMVECTOR Velocity);
 static void Player_Update_Bullet_System();
 
 // --- Input ---
-static XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat_Right);;
+static XMVECTOR Player_Update_Is_Jumped(XMVECTOR Vel);
+static XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat_Right);
 static void Player_Update_Get_Sprint_Input();
 static void Player_Update_Get_Drop_Item_Input();
 static void Player_Update_Get_Reload_Input();
@@ -108,7 +113,7 @@ void Player_Initialize(const XMFLOAT3& First_POS, const XMFLOAT3& First_Front)
 
 	Is_Jump = false;
 	Is_Run = false;
-	Is_Run_Toggle = false;
+	Is_Run_Toggle = Setting_Get_Sprint_Type();
 
 	Player_HP = Player_Base_MaxHP;
 	Player_MaxHP = Player_Base_MaxHP;
@@ -169,11 +174,6 @@ void Player_Update(double elapsed_time)
 	// Get Mouse Input State For Check Fire
 	Player_Update_Get_Mouse_Input();
 
-	if (KeyLogger_IsTrigger(KK_F4)) // toggle mode << debug Need Change
-	{
-		Is_Run_Toggle = !Is_Run_Toggle;
-	}
-
 	// Sprint (Run) Input
 	Player_Update_Get_Sprint_Input();
 
@@ -190,12 +190,7 @@ void Player_Update(double elapsed_time)
 	XMVECTOR Vel = XMLoadFloat3(&Player_Vel);
 
 	// Jump Logic
-	if (KeyLogger_IsTrigger(KK_SPACE) && !Is_Jump)
-	{
-		Is_Jump = true;
-		Vel = XMVectorSetY(Vel, 0.0f);
-		Vel += XMVECTOR{ 0.0f, 10.0f, 0.0f };
-	}
+	Vel = Player_Update_Is_Jumped(Vel);
 
 	// Gravity Apply
 	Vel += Gravity * dt;
@@ -210,7 +205,9 @@ void Player_Update(double elapsed_time)
 	Dir = Player_Update_Is_Moved(Dir, Flat_Front, Flat_Right);
 	Dir = XMVector3Normalize(Dir);
 
+	// Set Direction And Speed
 	Vel += Dir * Player_Speed * dt;
+
 	// Animation Model Change
 	Player_Update_Change_Animation(dt);
 
@@ -313,6 +310,12 @@ void Player_Reset()
 	Bonus_Damage_Ratio = 0.0f;
 	Bonus_Speed_Ratio = 0.0f;
 	Bonus_HP_Ratio = 0.0f;
+}
+
+
+void Player_Set_Sprint_Toggle_Mode(bool isToggle)
+{
+	Is_Run_Toggle = isToggle;
 }
 
 void Player_Set_POS(XMFLOAT3& POS)
@@ -612,16 +615,58 @@ void Player_Update_Bullet_System()
 // ----------------------------------------------------------------------------------------------------------------
 //												--- Input ---
 // ----------------------------------------------------------------------------------------------------------------
+XMVECTOR Player_Update_Is_Jumped(XMVECTOR Vel)
+{
+	static BYTE Prev_LT = 0;
+	BYTE Curr_LT = XKeyLogger_GetLeftTrigger();
+	bool Is_LT_Triggered = (Curr_LT > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) && (Prev_LT <= XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+	Prev_LT = Curr_LT;
+
+	// Jump Logic
+	if ((KeyLogger_IsTrigger(KK_SPACE) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_A) || Is_LT_Triggered) && !Is_Jump)
+	{
+		Is_Jump = true;
+		Vel = XMVectorSetY(Vel, 0.0f);
+		Vel += XMVECTOR{ 0.0f, 10.0f, 0.0f };
+		// Audio_Manager::GetInstance()->Play_SFX("Player_Jump");
+	}
+
+	return Vel;
+}
+
 XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat_Right)
 {
 	// 1. Vector Init
 	XMVECTOR InputDir = XMVectorZero();
 
-	// 2. Get Vector From Key Input
+	// 2-1. Get Vector From Keyboard Input
 	if (KeyLogger_IsPressed(KK_W)) InputDir += Flat_Front;
 	if (KeyLogger_IsPressed(KK_S)) InputDir -= Flat_Front;
 	if (KeyLogger_IsPressed(KK_D)) InputDir += Flat_Right;
 	if (KeyLogger_IsPressed(KK_A)) InputDir -= Flat_Right;
+
+	// 2-2. Get Vector From Gamepad D-Pad Input
+	if (XKeyLogger_IsPadPressed(XINPUT_GAMEPAD_DPAD_UP))    InputDir += Flat_Front;
+	if (XKeyLogger_IsPadPressed(XINPUT_GAMEPAD_DPAD_DOWN))  InputDir -= Flat_Front;
+	if (XKeyLogger_IsPadPressed(XINPUT_GAMEPAD_DPAD_RIGHT)) InputDir += Flat_Right;
+	if (XKeyLogger_IsPadPressed(XINPUT_GAMEPAD_DPAD_LEFT))  InputDir -= Flat_Right;
+
+	// 2-3. Get Vector From Gamepad Stick Input
+	XMFLOAT2 Stick = XKeyLogger_GetLeftStick();
+	float Stick_Magnitude = sqrtf(Stick.x * Stick.x + Stick.y * Stick.y); // Pythagorean Theorem
+
+	if (Stick_Magnitude > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+	{
+		// Normalize Stick Vector
+		XMVECTOR StickDir = XMVectorSet(Stick.x, 0.0f, Stick.y, 0.0f);
+		StickDir = XMVector3Normalize(StickDir);
+
+		// Transform Stick Vector to World Space (Relative to Camera)
+		// Stick.y (Up) -> Flat_Front
+		// Stick.x (Right) -> Flat_Right
+		XMVECTOR WorldStickDir = (Flat_Front * (Stick.y / 32767.0f)) + (Flat_Right * (Stick.x / 32767.0f));
+		InputDir += WorldStickDir;
+	}
 
 	// 3. Get Length Squared
 	XMVECTOR LengthSq = XMVector3LengthSq(InputDir);
@@ -642,15 +687,23 @@ XMVECTOR Player_Update_Is_Moved(XMVECTOR Dir, XMVECTOR Flat_Front, XMVECTOR Flat
 
 void Player_Update_Get_Sprint_Input()
 {
+	// Get Sprint Type From Setting
+	Is_Run_Toggle = Setting_Get_Sprint_Type();
+
+	// Get Sprint Input
+	bool Is_Input_Sprint = KeyLogger_IsPressed(KK_LEFTSHIFT) || XKeyLogger_IsPadPressed(XINPUT_GAMEPAD_LEFT_THUMB) || XKeyLogger_IsPadPressed(XINPUT_GAMEPAD_RIGHT_SHOULDER);
+	bool Is_Trigger_Sprint = KeyLogger_IsTrigger(KK_LEFTSHIFT) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_LEFT_THUMB) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_RIGHT_SHOULDER);
+
 	if (Is_Run_Toggle)
 	{
-		if (KeyLogger_IsTrigger(KK_LEFTSHIFT))
+		// Toggle Mode
+		if (Is_Trigger_Sprint)
 			Is_Run = !Is_Run;
 	}
 	else
 	{
-		if ((KeyLogger_IsPressed(KK_LEFTSHIFT) && !Is_Run) || (KeyLogger_IsReleased(KK_LEFTSHIFT) && Is_Run))
-			Is_Run = !Is_Run;
+		// Hold Mode
+		Is_Run = Is_Input_Sprint;
 	}
 
 	if (Is_Run)
@@ -665,7 +718,7 @@ void Player_Update_Get_Sprint_Input()
 
 void Player_Update_Get_Drop_Item_Input()
 {
-	if (KeyLogger_IsTrigger(KK_E))
+	if (KeyLogger_IsTrigger(KK_E) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_X))
 	{
 		// Get Player Eye POS & Dir
 		XMFLOAT3 pEyePos = Player_Camera_Get_Current_POS();// Player Eye Position
@@ -699,7 +752,7 @@ void Player_Update_Get_Drop_Item_Input()
 
 void Player_Update_Get_Reload_Input()
 {
-	if (KeyLogger_IsTrigger(KK_R))
+	if (KeyLogger_IsTrigger(KK_R) || XKeyLogger_IsPadTrigger(XINPUT_GAMEPAD_B))
 	{
 		Weapon_System::GetInstance().Reload();
 	}
@@ -707,6 +760,15 @@ void Player_Update_Get_Reload_Input()
 
 void Player_Update_Get_Mouse_Input()
 {
+	// Get Gamepad Input
+	bool Is_Pad_Aim = XKeyLogger_IsPadPressed(XINPUT_GAMEPAD_RIGHT_THUMB) || XKeyLogger_IsPadPressed(XINPUT_GAMEPAD_LEFT_SHOULDER);
+	static BYTE Prev_RT = 0;
+	BYTE Curr_RT = XKeyLogger_GetRightTrigger();
+	bool Is_RT_Pressed = (Curr_RT > XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+	bool Is_RT_Triggered = (Is_RT_Pressed) && (Prev_RT <= XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+	Prev_RT = Curr_RT;
+
+
 	// Get Now Weapom Info
 	bool isAuto = false;
 
@@ -718,7 +780,7 @@ void Player_Update_Get_Mouse_Input()
 	// Check Fire Input
 	if (isAuto)
 	{
-		if (KeyLogger_IsMousePressed(Mouse_Button::LEFT))
+		if (KeyLogger_IsMousePressed(Mouse_Button::LEFT) || Is_RT_Pressed)
 		{
 			Is_Shoot = true;
 		}
@@ -729,7 +791,7 @@ void Player_Update_Get_Mouse_Input()
 	}
 	else
 	{
-		if (KeyLogger_IsMouseTrigger(Mouse_Button::LEFT))
+		if (KeyLogger_IsMouseTrigger(Mouse_Button::LEFT) || Is_RT_Triggered)
 		{
 			Is_Shoot = true;
 		}
@@ -740,7 +802,7 @@ void Player_Update_Get_Mouse_Input()
 	}
 
 	// Check Aim Input
-	if (KeyLogger_IsMousePressed(Mouse_Button::RIGHT))
+	if (KeyLogger_IsMousePressed(Mouse_Button::RIGHT) || Is_Pad_Aim)
 	{
 		Is_Aiming_Mode = true;
 	}

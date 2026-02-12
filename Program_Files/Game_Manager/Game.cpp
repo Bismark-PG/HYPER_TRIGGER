@@ -45,7 +45,6 @@ using namespace PALETTE;
 static XMFLOAT3 Player_First_POS = { 0.0f, 5.0f, -5.0f };
 
 static bool Is_Debug_Mode = false;
-static bool Is_Sights_Change = false;
 
 static float Game_Play_Time = 0.0f;
 static int Last_Processed_Loop = -1;
@@ -192,13 +191,6 @@ void Game_Update(double elapsed_time)
 		return;
 	}
 
-	if (KeyLogger_IsTrigger(KK_V) && !Is_Sights_Change)
-	{
-		Is_Sights_Change = true;
-		Player_Camera_Change_Sights();
-		Is_Sights_Change = false;
-	}
-
 	Light_Manager::GetInstance().Global_Light_Update(elapsed_time);
 
 	Map_System_Update(elapsed_time);
@@ -265,6 +257,7 @@ void Game_Info_Reset()
 	// 1. Player Reset
 	Player_Reset();
 	Player_Camera_Set_Game_Mode();
+	Player_Camera_Reset();
 
 	// 2. Manager Reset
 	Enemy_Manager::GetInstance().Reset();
@@ -272,6 +265,7 @@ void Game_Info_Reset()
 	Enemy_Spawner::GetInstance().Reset();
 	Resource_Manager::GetInstance().Reset();
 	Upgrade_System::GetInstance().Reset();
+	Billboard_Manager::Instance().Reset();
 
 	// 3. DJ List Reset
 	Weapon_System::GetInstance().Init();
@@ -296,30 +290,3 @@ bool Game_Check_Is_Resetting()
 {
 	return Is_Reset_Mode;
 }
-
-// Make pyramid
-//int d = 1, i = 5;
-//for (int j = 0; j < 2; j++)
-//{
-//	for (int k = 0; k < 2; k++)
-//	{
-//		XMMATRIX mtxOffsec = XMMatrixTranslation(-2.5f + i * j, 0.0f, 2.5f - i * k);
-//		
-//		for (int y = 0; y < 5 * d; y++)
-//		{
-//			for (int z = 0; z < 5 * d - y; z++)
-//			{
-//				for (int x = 0; x < 5 * d - y; x++)
-//				{
-//					XMMATRIX mtxTrans = XMMatrixTranslation(-2.0f * d + x + 0.5f * y, 0.5f + y, -2.0f * d + z + 0.5f * y);
-//					XMMATRIX mtxRotateY = XMMatrixRotationY(XMConvertToRadians(g_Angle));
-//					XMMATRIX mtxScale = XMMatrixScaling(1.0f, g_Scale, 1.0f);
-//					
-//					XMMATRIX mtxWorld = mtxTrans * mtxRotateY * mtxOffsec * mtxScale;
-//					
-//					Cube_Draw(mtxWorld);
-//				}
-//			}
-//		}
-//	}
-//}

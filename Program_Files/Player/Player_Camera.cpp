@@ -14,8 +14,16 @@
 #include <algorithm>
 #include <debug_ostream.h>
 #include "Resource_Manager.h"
+#include "Setting.h"
 
 using namespace DirectX;
+
+// Controller Constants
+constexpr float CONTROLLER_STICK_MAX = 32767.0f; // Max Value of Short
+constexpr float CONTROLLER_STICK_WEIGHT = 800.0f;   // Pad Input Multiplier (Higher = Faster)
+constexpr float CAMERA_ROTATION_SCALE = 0.005f;
+
+#define XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE 8689
 
 // Player Camera Parameter
 static float Camera_Yaw = 0.0f, Camera_Pitch = 0.0f;
@@ -54,7 +62,6 @@ static XMFLOAT3 Current_Camera_Pos = {};
 // --- Sights (Shoulder View) ---
 static Player_Sights Current_Sights = {};
 static float Camera_Sights_Offset = {};
-static float Is_Camera_Sights_Changed = false;
 
 // --- Modes ---
 static bool Is_Menu_Mode = false;
@@ -65,6 +72,16 @@ void Player_Camera_Initialize()
 {
     Camera_POS = { 0.0f, 0.0f, 0.0f };
     Camera_Front = { 0.0f, 0.0f, 1.0f };
+
+    if (Setting_Get_View_Type())
+    {
+        Player_Camera_Set_Sights(Player_Sights::Right);
+    }
+    else
+    {
+        Player_Camera_Set_Sights(Player_Sights::Left);
+    }
+
     Current_Sights = Player_Sights::Right;
     Camera_Sights_Offset = 1.5f;
 
@@ -82,6 +99,20 @@ void Player_Camera_Initialize()
 
 void Player_Camera_Finalize()
 {
+}
+
+void Player_Camera_Reset()
+{
+    Camera_Yaw = 0.0f;
+    Camera_Pitch = 0.0f;
+
+    Target_Dist = Dist_Normal;
+    Target_FOV = FOV_Normal;
+    Target_Sens_Mult = 1.0f;
+
+    Camera_Distance = Dist_Normal;
+    Camera_FOV = FOV_Normal;
+    Apply_Sensitivity = Mouse_Sensitivity;
 }
 
 void Player_Camera_Update(double elapsed_time)
@@ -114,11 +145,18 @@ void Player_Camera_Update(double elapsed_time)
         return;
     }
 
-    // --- Shoulder View Swap ---
-    if (Is_Camera_Sights_Changed)
+    if (Target_FOV == FOV_Normal)
     {
-        Player_Camera_Update_Sights();
-        Is_Camera_Sights_Changed = false;
+        bool Is_Right_Set = Setting_Get_View_Type();
+
+        if (Is_Right_Set)
+        {
+            Player_Camera_Set_Sights(Player_Sights::Right);
+        }
+        else
+        {
+            Player_Camera_Set_Sights(Player_Sights::Left);
+        }
     }
 
     // --- ADS (Aim) Interpolation ---
@@ -137,12 +175,38 @@ void Player_Camera_Update(double elapsed_time)
 
     // --- Rotation Logic ---
     // Get Mouse Movement
-    float mouseMoveX = KeyLogger_GetMouse_MoveX() * Mouse_Sensitivity;
-    float mouseMoveY = KeyLogger_GetMouse_MoveY() * Mouse_Sensitivity;
+    float mouseMoveX = KeyLogger_GetMouse_MoveX() * Apply_Sensitivity;
+    float mouseMoveY = KeyLogger_GetMouse_MoveY() * Apply_Sensitivity;
 
-    // Add Angle
-    Camera_Yaw += mouseMoveX;
-    Camera_Pitch += mouseMoveY;
+    //Get Controller Input (Right Stick)
+    if (XKeyLogger_IsControllerInput())
+    {
+        XMFLOAT2 RightStick = XKeyLogger_GetRightStick();
+        float padMoveX = 0.0f;
+        float padMoveY = 0.0f;
+
+        // Check Deadzone
+        if (abs(RightStick.x) > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE || abs(RightStick.y) > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+        {
+            // Normalize (0.0 ~ 1.0)
+            float normX = RightStick.x / CONTROLLER_STICK_MAX;
+            float normY = RightStick.y / CONTROLLER_STICK_MAX;
+
+            // Apply Weight & Time & Shared Sensitivity
+            padMoveX = normX * CONTROLLER_STICK_WEIGHT * dt * Apply_Sensitivity;
+            padMoveY = normY * CONTROLLER_STICK_WEIGHT * dt * Apply_Sensitivity;
+        }
+
+        // Add Angle
+        Camera_Yaw += padMoveX;
+        Camera_Pitch -= padMoveY;
+    }
+    else
+    {
+        // Add Angle
+        Camera_Yaw += mouseMoveX;
+        Camera_Pitch += mouseMoveY;
+    }
 
     // Limited Pitch 
     Camera_Pitch = std::max(-XM_PIDIV2 * 0.8f, std::min(Camera_Pitch, XM_PIDIV2 * 0.8f)); // -80 ~ +80
@@ -250,21 +314,6 @@ void Player_Camera_Set_Sights(Player_Sights sight)
         Camera_Sights_Offset = 1.5f;
         break;
     }
-}
-
-void Player_Camera_Update_Sights()
-{
-    Camera_Sights_Offset *= -1.0f;
-
-    if (Camera_Sights_Offset > 0.0f)
-        Current_Sights = Player_Sights::Left;
-    else if (Camera_Sights_Offset < 0.0f)
-        Current_Sights = Player_Sights::Right;
-}
-
-void Player_Camera_Change_Sights()
-{
-    Is_Camera_Sights_Changed = true;
 }
 
 void Player_Camera_Set_Aiming_Mode(bool Is_Aiming)

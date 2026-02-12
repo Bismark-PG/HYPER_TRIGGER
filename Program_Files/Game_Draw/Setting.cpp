@@ -61,7 +61,7 @@ static bool Is_Slider_Dragging = false;
 
 // Setting Toggle
 static bool Is_Sprint_Toggle = false;
-static bool Is_Right_View = false;
+static bool Is_Right_View = true;
 
 static bool Reset_KeyLogger = false;
 
@@ -165,7 +165,7 @@ void Setting_Initialize()
     Is_Slider_Dragging = false;
 
     Is_Sprint_Toggle = false;
-    Is_Right_View = false;
+    Is_Right_View = true;
 }
 
 void Setting_Finalize()

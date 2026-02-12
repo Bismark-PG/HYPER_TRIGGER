@@ -59,7 +59,7 @@ void Weapon_System::Update(double elapsed_time)
                 auto& weapon = GetCurrentWeapon();
                 if (weapon.Spec.IsAutomatic)
                 {
-                    std::string LoopName = (weapon.Spec.Type == WeaponType::MACHINE_GUN) ? "MG_Fire_Loop" : "AR_Fire_Loop";
+                    std::string LoopName = (weapon.Spec.Type == WeaponType::MACHINE_GUN) ? "MG_Fire" : "AR_Fire";
                     std::string EndName = (weapon.Spec.Type == WeaponType::MACHINE_GUN) ? "MG_Fire_End" : "AR_Fire_End";
 
                     if (Audio_Manager::GetInstance()->Is_Playing_Loop_SFX(LoopName))
@@ -141,7 +141,7 @@ void Weapon_System::Clear()
     Audio_Manager::GetInstance()->Stop_Loop_SFX("MG_Fire");
     Audio_Manager::GetInstance()->Stop_Loop_SFX("MG_Reload_Ing");
 
-    AddWeapon(WeaponType::HANDGUN);
+    AddWeapon(WeaponType::HANDGUN, false);
 
     for (int i = 0; i < 4; i++)
     {
@@ -182,7 +182,7 @@ bool Weapon_System::Fire(const DirectX::XMFLOAT3& visualPos, const DirectX::XMFL
     {
         std::string LoopName = (weapon.Spec.Type == WeaponType::MACHINE_GUN) ? "MG_Fire" : "AR_Fire";
         Audio_Manager::GetInstance()->Play_Loop_SFX(LoopName);
-        m_AutoFireBuffer = weapon.Spec.FireRate + 0.1f;
+        m_AutoFireBuffer = weapon.Spec.FireRate + 0.08f;
     }
     else
     {
@@ -242,7 +242,7 @@ void Weapon_System::Reload()
     }
 }
 
-bool Weapon_System::AddWeapon(WeaponType type)
+bool Weapon_System::AddWeapon(WeaponType type, bool Sound)
 {
     if (m_WeaponQueue.size() >= m_MaxInventorySize)
     {
@@ -278,7 +278,11 @@ bool Weapon_System::AddWeapon(WeaponType type)
 
     m_WeaponQueue.push_back(newState);
 
-    Audio_Manager::GetInstance()->Play_SFX("Weapon_Pick_UP");  // Need Sound
+    if (Sound)
+    {
+        Audio_Manager::GetInstance()->Play_SFX("Weapon_Pick_UP");
+    }
+
     SyncBGM();
 
     return true;
